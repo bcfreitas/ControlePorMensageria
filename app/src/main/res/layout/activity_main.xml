@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:backgroundTint="@color/black"
+    android:background="@color/black"
     tools:context=".MainActivity">
 
     <Button
@@ -13,16 +15,6 @@
         android:layout_marginStart="250dp"
         android:layout_marginTop="24dp"
         android:text="Enviar 'a'"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Switch
-        android:id="@+id/btnSincronizacao"
-        android:layout_width="138dp"
-        android:layout_height="30dp"
-        android:layout_marginStart="48dp"
-        android:layout_marginTop="36dp"
-        android:text="Sincronização"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

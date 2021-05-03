@@ -1,12 +1,8 @@
 package com.example.controlepormensageria;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Channel;
+import androidx.core.app.JobIntentService;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -14,29 +10,30 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.concurrent.TimeoutException;
 
 public class MainActivity extends AppCompatActivity {
 
     Handler handler = new Handler();
-    Receiver receiver;
     int tempoParaConsulta = 2000;
     boolean sincronizacaoAtiva;
     Collection<Integer> estados = new ArrayList<Integer>();
     Integer ultimoComando;
     Date dataUltimoComando;
     Integer tempoPadraoComando = 1000;
+    private MensageriaThread mensageriaThread;
+
 
     private BroadcastReceiver mensageria = new BroadcastReceiver() {
         @Override
@@ -83,44 +80,20 @@ public class MainActivity extends AppCompatActivity {
         estados.add(R.id.botao_esquerda);
         estados.add(R.id.botao_direita);
 
+        MensageriaThread mensageriaThread = new MensageriaThread(getApplicationContext());
+        mensageriaThread.start();
+
         findViewById(R.id.btnSendMessage).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "Enviado comando de teste 'a'.", Toast.LENGTH_SHORT).show();
-                new Send().execute(new Object());
-            }
-
-        });
-
-        ((Switch)findViewById(R.id.btnSincronizacao)).setOnClickListener(new View.OnClickListener(){
-            public void onClick(View view){
-                if(((Switch)findViewById(R.id.btnSincronizacao)).isChecked()) {
-                    sincronizacaoAtiva=true;
-                    Toast.makeText(getApplicationContext(), "Sincronização ativada!", Toast.LENGTH_SHORT).show();
-                    loopReceiver();
-                } else {
-                    sincronizacaoAtiva=false;
-                    Toast.makeText(getApplicationContext(), "Sincronização desativada!", Toast.LENGTH_SHORT).show();
-                }
+                Toast.makeText(getApplicationContext(), "Enviando mensagem 'a' para o servidor rabbitMQ.", Toast.LENGTH_SHORT).show();
+                Message msg2 = new Message();
+                Bundle bundleSample = new Bundle();
+                bundleSample.putString("msgParaRabbitMQ","a");
+                msg2.setData(bundleSample);
+                mensageriaThread.mHandler.sendMessage(msg2);
             }
         });
-    }
-
-    //
-    private void loopReceiver() {
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable(){
-            @Override
-            public void run() {
-                System.out.println("Escutando...");
-                Receiver receiver = new Receiver(getApplicationContext());
-                receiver.execute();
-                if(sincronizacaoAtiva) {
-                    loopReceiver();
-                }
-            }
-        }, tempoParaConsulta);
-
     }
 
     //adiciona log do comando à TextView da tela, para consulta.
