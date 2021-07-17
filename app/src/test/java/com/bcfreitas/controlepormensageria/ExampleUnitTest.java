@@ -1,4 +1,4 @@
-package com.example.controlepormensageria;
+package com.bcfreitas.controlepormensageria;
 
 import org.junit.Test;
 

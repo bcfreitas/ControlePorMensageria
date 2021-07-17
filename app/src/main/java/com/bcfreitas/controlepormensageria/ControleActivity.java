@@ -1,8 +1,7 @@
-package com.example.controlepormensageria;
+package com.bcfreitas.controlepormensageria;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-import androidx.core.app.JobIntentService;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -10,11 +9,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.view.View;
 import android.widget.ScrollView;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,7 +20,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 
-public class MainActivity extends AppCompatActivity {
+public class ControleActivity extends AppCompatActivity {
 
     Handler handler = new Handler();
     int tempoParaConsulta = 2000;
@@ -73,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_controle);
         estados.add(R.id.botao_frente);
         estados.add(R.id.botao_centro);
         estados.add(R.id.botao_tras);

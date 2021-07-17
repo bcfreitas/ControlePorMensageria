@@ -1,4 +1,4 @@
-package com.example.controlepormensageria;
+package com.bcfreitas.controlepormensageria;
 
 import android.content.Context;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.example.controlepormensageria", appContext.getPackageName());
+        assertEquals("com.bcfreitas.controlepormensageria", appContext.getPackageName());
     }
 }

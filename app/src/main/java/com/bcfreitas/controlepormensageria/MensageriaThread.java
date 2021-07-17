@@ -1,4 +1,4 @@
-package com.example.controlepormensageria;
+package com.bcfreitas.controlepormensageria;
 
 import android.content.Context;
 import android.content.Intent;
