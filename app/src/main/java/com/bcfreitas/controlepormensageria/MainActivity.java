@@ -8,6 +8,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -26,6 +29,8 @@ import dji.sdk.base.BaseProduct;
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.thirdparty.afinal.core.AsyncTask;
+
+import static com.dji.mapkit.core.models.DJIBitmapDescriptor.Type.View;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -127,6 +132,9 @@ public class MainActivity extends AppCompatActivity {
                         public void onRegister(DJIError djiError) {
                             if (djiError == DJISDKError.REGISTRATION_SUCCESS) {
                                 showToast("Register Success");
+
+                                atualizarViews();
+
                                 DJISDKManager.getInstance().startConnectionToProduct();
                             } else {
                                 showToast("Register sdk fails, please check the bundle id and network connection!");
@@ -218,6 +226,25 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void atualizarViews() {
+
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                TextView msgRegistroSDK = (TextView)findViewById(R.id.msgRegistro);
+                msgRegistroSDK.setText("Registro de uso da SDK ok na DJI!");
+
+                Button btnAcessarControle = (Button) findViewById(R.id.btnAcessarControle);
+                btnAcessarControle.setEnabled(true);
+            }
+        });
+    }
+
+    public void acessarControle(android.view.View view) {
+        Intent intent = new Intent(MainActivity.this, ControleActivity.class);
+        startActivity(intent);
+    }
 
 
 }

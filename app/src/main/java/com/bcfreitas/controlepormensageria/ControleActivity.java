@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.view.View;
 import android.widget.ScrollView;
@@ -19,6 +20,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import dji.common.error.DJIError;
+import dji.common.flightcontroller.virtualstick.FlightControlData;
+import dji.common.util.CommonCallbacks;
+import dji.sdk.base.BaseProduct;
+import dji.sdk.products.Aircraft;
+import dji.sdk.sdkmanager.DJISDKManager;
 
 public class ControleActivity extends AppCompatActivity {
 
@@ -30,6 +40,18 @@ public class ControleActivity extends AppCompatActivity {
     Date dataUltimoComando;
     Integer tempoPadraoComando = 1000;
     private MensageriaThread mensageriaThread;
+
+    private boolean yawControlModeFlag = true;
+    private boolean rollPitchControlModeFlag = true;
+    private boolean verticalControlModeFlag = true;
+    private boolean horizontalCoordinateFlag = true;
+    private Timer sendVirtualStickDataTimer;
+    private SendVirtualStickDataTask sendVirtualStickDataTask;
+
+    private float pitch;
+    private float roll;
+    private float yaw;
+    private float throttle;
 
 
     private BroadcastReceiver mensageria = new BroadcastReceiver() {
@@ -140,6 +162,129 @@ public class ControleActivity extends AppCompatActivity {
                 }
             }, tempoPadraoComando);
         }
+
+        //TODO: traduzir comandos!
+        //por enquanto é só um teste inicial pra girar o drone
+        enviaComandoParaDrone();
+    }
+
+    public void enviaComandoParaDrone(){
+        //Coordenadas X e Y do controle virtual anaĺogico esquerdo (girar, subir/descer - eixo Z )
+        float controleEsquerdo_pX = 0;
+        float controleEsquerdo_pY = 0;
+        //Coordenadas X e Y do controle virtual anaĺogico direito (frente, trás, esquerda,
+        //  direita - eixos X/Y)
+        float controleDireito_pX = 0;
+        float controleDireito_pY = 0;
+
+        //TODO - Precisamos rever como os dados serão enviados pela mensageria.
+        //Por enquanto, apenas para fins de teste básico
+        //um movimento de GIRO para esquerda (o stick esquerdo controla isso).
+        controleEsquerdo_pX = -0.3f;
+
+        //TODO - entender o impacto destes valores na prática
+        float verticalJoyControlMaxSpeed = 2;
+        float yawJoyControlMaxSpeed = 3;
+
+        float pitchJoyControlMaxSpeed = 10;
+        float rollJoyControlMaxSpeed = 10;
+
+        //flag setada como true por padrão, fazendo com que
+        // pitch: represente posição do eixo X do virtual stick
+        // roll: represente posição do eixo Y do virtual stick
+        if (horizontalCoordinateFlag) {
+            if (rollPitchControlModeFlag) {
+                pitch = (float) (pitchJoyControlMaxSpeed * controleDireito_pX);
+                roll = (float) (rollJoyControlMaxSpeed * controleDireito_pY);
+            } else {
+                pitch = -(float) (pitchJoyControlMaxSpeed * controleDireito_pY);
+                roll = (float) (rollJoyControlMaxSpeed * controleDireito_pX);
+            }
+        }
+
+        //yaw representa o giro do drone, tem dois modos:
+        // modo velocidade angular, em que o valor passado é a quantidade de graus por segundo,
+        // modo ângulo, em que o valor passado é o ângulo para girar.
+        yaw = yawJoyControlMaxSpeed * controleEsquerdo_pX;
+
+        //throtle representa o movimento vertical (eixo Z), tem dois modos:
+        // modo posição: valor que representa a altitude em relação à posição de decolagem,
+        // modo velocidade: valores positivos representam ascenção, negativos descida.
+        throttle = verticalJoyControlMaxSpeed * controleEsquerdo_pY;
+
+        //Aqui é criada a classe que vai ser agendada para executar e enviar uma instância de
+        // FlightControlData com os dados de navegação pitch, roll, yaw e throttle atribuídos acima.
+        if (null == sendVirtualStickDataTimer) {
+            sendVirtualStickDataTask = new SendVirtualStickDataTask();
+            sendVirtualStickDataTimer = new Timer();
+            sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, 0, 200);
+        }
+    }
+
+    private class SendVirtualStickDataTask extends TimerTask {
+
+        @Override
+        public void run() {
+            if (isFlightControllerAvailable()) {
+                getAircraftInstance()
+                        .getFlightController()
+                        .sendVirtualStickFlightControlData(new FlightControlData(pitch,
+                                        roll,
+                                        yaw,
+                                        throttle),
+                                new CommonCallbacks.CompletionCallback() {
+                                    @Override
+                                    public void onResult(DJIError djiError) {
+
+                                    }
+                                });
+            } else {
+                showToast("Drone não está conectado!!!");
+            }
+        }
+    }
+
+    private void showToast(final String toastMsg) {
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), toastMsg, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    public static boolean isFlightControllerAvailable() {
+        return isProductModuleAvailable() && isAircraft() && (null != getAircraftInstance()
+                .getFlightController());
+    }
+
+    public static boolean isProductModuleAvailable() {
+        return (null != getProductInstance());
+    }
+
+    public static boolean isAircraft() {
+        return getProductInstance() instanceof Aircraft;
+    }
+
+    /**
+     * Gets instance of the specific product connected after the
+     * API KEY is successfully validated. Please make sure the
+     * API_KEY has been added in the Manifest
+     */
+    public static synchronized BaseProduct getProductInstance() {
+        return DJISDKManager.getInstance().getProduct();
+    }
+
+    public static synchronized Aircraft getAircraftInstance() {
+        if (!isAircraftConnected()) {
+            return null;
+        }
+        return (Aircraft) getProductInstance();
+    }
+
+    public static boolean isAircraftConnected() {
+        return getProductInstance() != null && getProductInstance() instanceof Aircraft;
     }
 
     //executa a ação referente ao comando recebido
