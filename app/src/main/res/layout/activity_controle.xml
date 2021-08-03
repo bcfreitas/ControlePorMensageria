@@ -9,6 +9,45 @@
     tools:context=".ControleActivity">
 
     <Button
+        android:id="@+id/botao_takeoff"
+        android:layout_width="100dp"
+        android:layout_height="40dp"
+        android:layout_marginBottom="250dp"
+        android:backgroundTint="@color/purple_500"
+        android:text="voar"
+        android:textColor="@color/black"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.089"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/botao_girar"
+        android:layout_width="100dp"
+        android:layout_height="40dp"
+        android:layout_marginBottom="250dp"
+        android:backgroundTint="@color/purple_500"
+        android:text="girar"
+        android:textColor="@color/black"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/botao_land"
+        android:layout_width="100dp"
+        android:layout_height="40dp"
+        android:layout_marginBottom="250dp"
+        android:backgroundTint="@color/purple_500"
+        android:text="pousar"
+        android:textColor="@color/black"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.913"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
         android:id="@+id/btnSendMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -23,18 +62,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
-        android:gravity="center_horizontal"
+        android:gravity="start"
         android:layout_marginTop="80dp"
-        android:text="LOG de comandos:"
+        android:text="Dados recebidos por mensageria:"
         android:backgroundTint="@color/teal_200"
-        android:textAlignment="center"
+        android:textAlignment="textStart"
         android:textColor="@color/black"
         app:layout_constraintTop_toTopOf="parent"/>
 
     <ScrollView
         android:id="@+id/scrollLog"
         android:layout_width="match_parent"
-        android:layout_height="180dp"
+        android:layout_height="100dp"
         android:layout_marginTop="100dp"
         android:background="@color/white"
         app:layout_constraintTop_toTopOf="parent"
@@ -57,6 +96,48 @@
                 android:text=""
                 android:textColor="@color/black"
                 android:layout_gravity="bottom"/>
+
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/labelLogSDK"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:gravity="start"
+        android:layout_marginTop="20dp"
+        android:text="Dados enviados pela SDK:"
+        android:backgroundTint="@color/teal_200"
+        android:textAlignment="textStart"
+        android:textColor="@color/black"
+        app:layout_constraintTop_toBottomOf="@id/scrollLog"/>
+
+    <ScrollView
+        android:id="@+id/scrollLogSDK"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_marginTop="0dp"
+        android:background="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/labelLogSDK"
+        tools:layout_editor_absoluteX="196dp"
+        tools:layout_editor_absoluteY="203dp"
+        android:fillViewport="true"
+        android:scrollbarAlwaysDrawVerticalTrack="true"
+        android:scrollbarSize="4dp"
+        android:verticalScrollbarPosition="right"
+        android:scrollbarFadeDuration="0"
+        android:fadeScrollbars="false"
+        >
+
+        <TextView
+            android:id="@+id/logComandosSDK"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:background="@color/white"
+            android:text=""
+            android:textColor="@color/black"
+            android:layout_gravity="bottom"/>
 
     </ScrollView>
 

@@ -16,6 +16,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -27,6 +28,7 @@ import dji.common.error.DJIError;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseProduct;
+import dji.sdk.flightcontroller.FlightController;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 
@@ -47,6 +49,8 @@ public class ControleActivity extends AppCompatActivity {
     private boolean horizontalCoordinateFlag = true;
     private Timer sendVirtualStickDataTimer;
     private SendVirtualStickDataTask sendVirtualStickDataTask;
+    private SendTakeOff sendTakeOff;
+    private SendLanding sendLanding;
 
     private float pitch;
     private float roll;
@@ -67,6 +71,12 @@ public class ControleActivity extends AppCompatActivity {
                     recebeComandoNavegacao(R.id.botao_frente);
                 } else if (comando.equals("s")) {
                     recebeComandoNavegacao(R.id.botao_tras);
+                } else if (comando.equals("t")) {
+                    recebeComandoNavegacao(R.id.botao_takeoff);
+                } else if (comando.equals("l")) {
+                    recebeComandoNavegacao(R.id.botao_land);
+                } else if (comando.equals("g")) {
+                    recebeComandoNavegacao(R.id.botao_girar);
                 } else {
                     Toast.makeText(getApplicationContext(), comando, Toast.LENGTH_SHORT).show();
                     //Registra log do comando recebido na TextView da tela
@@ -98,6 +108,9 @@ public class ControleActivity extends AppCompatActivity {
         estados.add(R.id.botao_tras);
         estados.add(R.id.botao_esquerda);
         estados.add(R.id.botao_direita);
+        estados.add(R.id.botao_takeoff);
+        estados.add(R.id.botao_girar);
+        estados.add(R.id.botao_land);
 
         MensageriaThread mensageriaThread = new MensageriaThread(getApplicationContext());
         mensageriaThread.start();
@@ -134,11 +147,21 @@ public class ControleActivity extends AppCompatActivity {
             case R.id.botao_centro:
                 textoDirecao = "pare!";
                 break;
+            case R.id.botao_takeoff:
+                textoDirecao = "levantar vôo";
+                break;
+            case R.id.botao_girar:
+                textoDirecao = "girar";
+                break;
+            case R.id.botao_land:
+                textoDirecao = "pousar";
+                break;
             default:
                 textoDirecao = "";
         }
         String log = (String) logView.getText();
-        log = log + "\n" + (new Date().toString()) + " - " + textoDirecao;
+        DateFormat df = DateFormat.getInstance();
+        log = log + "\n" + (df.format(new Date())) + " - " + textoDirecao;
         logView.setText(log);
         ((ScrollView) findViewById(R.id.scrollLog)).fullScroll(View.FOCUS_DOWN);
     }
@@ -163,12 +186,10 @@ public class ControleActivity extends AppCompatActivity {
             }, tempoPadraoComando);
         }
 
-        //TODO: traduzir comandos!
-        //por enquanto é só um teste inicial pra girar o drone
-        enviaComandoParaDrone();
+        enviaComandoParaDrone(direcao);
     }
 
-    public void enviaComandoParaDrone(){
+    public void enviaComandoParaDrone(int direcao){
         //Coordenadas X e Y do controle virtual anaĺogico esquerdo (girar, subir/descer - eixo Z )
         float controleEsquerdo_pX = 0;
         float controleEsquerdo_pY = 0;
@@ -177,10 +198,45 @@ public class ControleActivity extends AppCompatActivity {
         float controleDireito_pX = 0;
         float controleDireito_pY = 0;
 
-        //TODO - Precisamos rever como os dados serão enviados pela mensageria.
-        //Por enquanto, apenas para fins de teste básico
-        //um movimento de GIRO para esquerda (o stick esquerdo controla isso).
-        controleEsquerdo_pX = -0.3f;
+        switch (direcao) {
+            case R.id.botao_direita:
+                controleDireito_pX = 0.3f;
+                break;
+            case R.id.botao_esquerda:
+                controleDireito_pX = -0.3f;
+                break;
+            case R.id.botao_frente:
+                controleDireito_pY = 0.3f;
+                break;
+            case R.id.botao_tras:
+                controleDireito_pY = -0.3f;
+                break;
+            case R.id.botao_centro:
+                controleEsquerdo_pX = 0;
+                controleEsquerdo_pY = 0;
+                controleDireito_pX = 0;
+                controleDireito_pY = 0;
+                break;
+            case R.id.botao_takeoff:
+                sendTakeOff = new SendTakeOff();
+                sendVirtualStickDataTimer = new Timer();
+                sendVirtualStickDataTimer.schedule(sendTakeOff, new Date());
+                return;
+            case R.id.botao_girar:
+                //único giro implementado é para esquerda
+                controleEsquerdo_pX = -0.3f;
+                break;
+            case R.id.botao_land:
+                sendLanding = new SendLanding();
+                sendVirtualStickDataTimer = new Timer();
+                sendVirtualStickDataTimer.schedule(sendLanding, new Date());
+                return;
+            default:
+                controleEsquerdo_pX = 0;
+                controleEsquerdo_pY = 0;
+                controleDireito_pX = 0;
+                controleDireito_pY = 0;
+        }
 
         //TODO - entender o impacto destes valores na prática
         float verticalJoyControlMaxSpeed = 2;
@@ -214,24 +270,24 @@ public class ControleActivity extends AppCompatActivity {
 
         //Aqui é criada a classe que vai ser agendada para executar e enviar uma instância de
         // FlightControlData com os dados de navegação pitch, roll, yaw e throttle atribuídos acima.
-        if (null == sendVirtualStickDataTimer) {
-            sendVirtualStickDataTask = new SendVirtualStickDataTask();
-            sendVirtualStickDataTimer = new Timer();
-            sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, 0, 200);
-        }
+
+        sendVirtualStickDataTask = new SendVirtualStickDataTask();
+        sendVirtualStickDataTimer = new Timer();
+        sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, new Date());
     }
 
     private class SendVirtualStickDataTask extends TimerTask {
 
         @Override
         public void run() {
+            FlightControlData flightControlData = new FlightControlData(pitch,
+                    roll,
+                    yaw,
+                    throttle);
             if (isFlightControllerAvailable()) {
                 getAircraftInstance()
                         .getFlightController()
-                        .sendVirtualStickFlightControlData(new FlightControlData(pitch,
-                                        roll,
-                                        yaw,
-                                        throttle),
+                        .sendVirtualStickFlightControlData(flightControlData,
                                 new CommonCallbacks.CompletionCallback() {
                                     @Override
                                     public void onResult(DJIError djiError) {
@@ -241,8 +297,51 @@ public class ControleActivity extends AppCompatActivity {
             } else {
                 showToast("Drone não está conectado!!!");
             }
+
+            registraLogSDK("", flightControlData);
         }
     }
+
+    private class SendTakeOff extends TimerTask {
+
+        @Override
+        public void run() {
+            if (isFlightControllerAvailable()) {
+                getAircraftInstance()
+                        .getFlightController().startTakeoff(
+                                new CommonCallbacks.CompletionCallback() {
+                                    @Override
+                                    public void onResult(DJIError djiError) {
+                                        showToast(djiError.getDescription());
+                                    }
+                                });
+            } else {
+                showToast("Drone não está conectado!!!");
+            }
+            registraLogSDK(" startTakeOff", null);
+        }
+    }
+
+    private class SendLanding extends TimerTask {
+
+        @Override
+        public void run() {
+            if (isFlightControllerAvailable()) {
+                getAircraftInstance()
+                        .getFlightController().startLanding(
+                        new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+                                showToast(djiError.getDescription());
+                            }
+                        });
+            } else {
+                showToast("Drone não está conectado!!!");
+            }
+            registraLogSDK(" startLanding", null);
+        }
+    }
+
 
     private void showToast(final String toastMsg) {
         Handler handler = new Handler(Looper.getMainLooper());
@@ -310,6 +409,27 @@ public class ControleActivity extends AppCompatActivity {
             //fica no estado padrão
             findViewById(R.id.botao_centro).setBackgroundColor(getResources().getColor(R.color.teal_200));
         }
+    }
+
+    public void registraLogSDK(String levantarOuPousar, FlightControlData flightControlData){
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                TextView logViewSDK = findViewById(R.id.logComandosSDK);
+                String log = (String) logViewSDK.getText();
+                DateFormat df = DateFormat.getInstance();
+                if(flightControlData!=null) {
+                    log = log + "\n" + (df.format(new Date())) + " Pitch:" + flightControlData.getPitch() + ", Roll:" +
+                            flightControlData.getRoll() + ", Yaw:" + flightControlData.getYaw() + ", Throttle: " + flightControlData.getVerticalThrottle();
+                } else {
+                    log = log + "\n" + (df.format(new Date())) + levantarOuPousar;
+                }
+
+                logViewSDK.setText(log);
+                ((ScrollView) findViewById(R.id.scrollLog)).fullScroll(View.FOCUS_DOWN);
+            }
+        });
     }
 
 }
