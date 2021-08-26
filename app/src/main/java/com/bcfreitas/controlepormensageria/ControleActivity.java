@@ -54,6 +54,7 @@ public class ControleActivity extends AppCompatActivity {
     private SendLanding sendLanding;
     private TurnOnMotors turnOnMotors;
     private TurnOffMotors turnOffMotors;
+    private GetBatteryLevel getBatteryLevel;
     private int nivelBateria;
 
     private float pitch;
@@ -85,6 +86,8 @@ public class ControleActivity extends AppCompatActivity {
                     recebeComandoNavegacao(R.id.botao_on);
                 } else if (comando.equals("off")) {
                     recebeComandoNavegacao(R.id.botao_off);
+                } else if (comando.equals("bat")) {
+                    recebeComandoNavegacao(R.id.botao_bateria);
                 } else {
                     Toast.makeText(getApplicationContext(), comando, Toast.LENGTH_SHORT).show();
                     //Registra log do comando recebido na TextView da tela
@@ -121,6 +124,7 @@ public class ControleActivity extends AppCompatActivity {
         estados.add(R.id.botao_land);
         estados.add(R.id.botao_on);
         estados.add(R.id.botao_off);
+        estados.add(R.id.botao_bateria);
 
         MensageriaThread mensageriaThread = new MensageriaThread(getApplicationContext());
         mensageriaThread.start();
@@ -140,7 +144,21 @@ public class ControleActivity extends AppCompatActivity {
         findViewById(R.id.botao_bateria).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                checarBateria();
+                recebeComandoNavegacao(R.id.botao_bateria);
+            }
+        });
+
+        findViewById(R.id.botao_on).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_on);
+            }
+        });
+
+        findViewById(R.id.botao_off).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_off);
             }
         });
     }
@@ -178,6 +196,9 @@ public class ControleActivity extends AppCompatActivity {
                 break;
             case R.id.botao_off:
                 textoDirecao = "desligar motor";
+                break;
+            case R.id.botao_bateria:
+                textoDirecao = "checar bateria";
                 break;
             default:
                 textoDirecao = "";
@@ -264,7 +285,11 @@ public class ControleActivity extends AppCompatActivity {
                 sendVirtualStickDataTimer = new Timer();
                 sendVirtualStickDataTimer.schedule(turnOffMotors, new Date());
                 return;
-
+            case R.id.botao_bateria:
+                getBatteryLevel = new GetBatteryLevel();
+                sendVirtualStickDataTimer = new Timer();
+                sendVirtualStickDataTimer.schedule(getBatteryLevel, new Date());
+                return;
             default:
                 controleEsquerdo_pX = 0;
                 controleEsquerdo_pY = 0;
@@ -314,25 +339,33 @@ public class ControleActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            FlightControlData flightControlData = new FlightControlData(pitch,
-                    roll,
-                    yaw,
-                    throttle);
-            if (isFlightControllerAvailable()) {
-                getAircraftInstance()
-                        .getFlightController()
-                        .sendVirtualStickFlightControlData(flightControlData,
-                                new CommonCallbacks.CompletionCallback() {
-                                    @Override
-                                    public void onResult(DJIError djiError ) {
-                                        showToast(djiError.getDescription() + String.valueOf(djiError.getErrorCode()));
-                                    }
-                                });
-            } else {
-                showToast("Drone não está conectado!!!");
-            }
+            try {
+                FlightControlData flightControlData = new FlightControlData(pitch,
+                        roll,
+                        yaw,
+                        throttle);
+                if (isFlightControllerAvailable()) {
+                    getAircraftInstance()
+                            .getFlightController()
+                            .sendVirtualStickFlightControlData(flightControlData,
+                                    new CommonCallbacks.CompletionCallback() {
+                                        @Override
+                                        public void onResult(DJIError djiError) {
+                                            if(djiError!=null) {
+                                                showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
+                                            } else {
+                                                showToast("Comando de movimento enviado para drone com Sucesso! Observe se ele executou.");
+                                            }
+                                        }
+                                    });
+                } else {
+                    showToast("Drone não está conectado!!!");
+                }
 
-            registraLogSDK("", flightControlData);
+                registraLogSDK("", flightControlData);
+            } catch (Exception e) {
+                showToast("Erro :" + e.getMessage());
+            }
         }
     }
 
@@ -340,19 +373,27 @@ public class ControleActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            if (isFlightControllerAvailable()) {
-                getAircraftInstance()
-                        .getFlightController().startTakeoff(
-                                new CommonCallbacks.CompletionCallback() {
-                                    @Override
-                                    public void onResult(DJIError djiError) {
-                                        showToast(djiError.getDescription() + "; code: " + djiError.getErrorCode());
+            try {
+                if (isFlightControllerAvailable()) {
+                    getAircraftInstance()
+                            .getFlightController().startTakeoff(
+                            new CommonCallbacks.CompletionCallback() {
+                                @Override
+                                public void onResult(DJIError djiError) {
+                                    if(djiError!=null) {
+                                        showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
+                                    } else {
+                                        showToast("takeOff enviado para drone com Sucesso! O drone deve estar no ar neste momento.");
                                     }
-                                });
-            } else {
-                showToast("Drone não está conectado!!!");
+                                }
+                            });
+                } else {
+                    showToast("Drone não está conectado!!!");
+                }
+                registraLogSDK(" startTakeOff", null);
+            } catch (Exception e) {
+                showToast("Erro: " + e.getMessage());
             }
-            registraLogSDK(" startTakeOff", null);
         }
     }
 
@@ -360,19 +401,27 @@ public class ControleActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            if (isFlightControllerAvailable()) {
-                getAircraftInstance()
-                        .getFlightController().turnOnMotors(
-                        new CommonCallbacks.CompletionCallback() {
-                            @Override
-                            public void onResult(DJIError djiError) {
-                                showToast(djiError.getDescription() + String.valueOf(djiError.getErrorCode()));
-                            }
-                        });
-            } else {
-                showToast("Drone não está conectado!!!");
+            try {
+                if (isFlightControllerAvailable()) {
+                    getAircraftInstance()
+                            .getFlightController().turnOnMotors(
+                            new CommonCallbacks.CompletionCallback() {
+                                @Override
+                                public void onResult(DJIError djiError) {
+                                    if(djiError!=null) {
+                                        showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
+                                    } else {
+                                        showToast("turnOn enviado para drone com Sucesso! Olha aí que o bicho deve estar girando! :)");
+                                    }
+                                }
+                            });
+                } else {
+                    showToast("Drone não está conectado!!!");
+                }
+                registraLogSDK(" turnOnMotors", null);
+            } catch (Exception e) {
+                showToast("Erro: " + e.getMessage());
             }
-            registraLogSDK(" turnOnMotors", null);
         }
     }
 
@@ -380,19 +429,27 @@ public class ControleActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            if (isFlightControllerAvailable()) {
-                getAircraftInstance()
-                        .getFlightController().turnOffMotors(
-                        new CommonCallbacks.CompletionCallback() {
-                            @Override
-                            public void onResult(DJIError djiError) {
-                                showToast(djiError.getDescription() + String.valueOf(djiError.getErrorCode()));
-                            }
-                        });
-            } else {
-                showToast("Drone não está conectado!!!");
+            try {
+                if (isFlightControllerAvailable()) {
+                    getAircraftInstance()
+                            .getFlightController().turnOffMotors(
+                            new CommonCallbacks.CompletionCallback() {
+                                @Override
+                                public void onResult(DJIError djiError) {
+                                    if(djiError!=null) {
+                                        showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
+                                    } else {
+                                        showToast("turnOff enviado para drone com Sucesso! As hélices devem estar paradas.");
+                                    }
+                                }
+                            });
+                } else {
+                    showToast("Drone não está conectado!!!");
+                }
+                registraLogSDK(" turnOffMotors", null);
+            } catch (Exception e){
+                showToast("Erro: " + e.getMessage());
             }
-            registraLogSDK(" turnOffMotors", null);
         }
     }
 
@@ -400,19 +457,44 @@ public class ControleActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            if (isFlightControllerAvailable()) {
-                getAircraftInstance()
-                        .getFlightController().startLanding(
-                        new CommonCallbacks.CompletionCallback() {
-                            @Override
-                            public void onResult(DJIError djiError) {
-                                showToast(djiError.getDescription() + String.valueOf(djiError.getErrorCode()));
-                            }
-                        });
-            } else {
-                showToast("Drone não está conectado!!!");
+            try {
+                if (isFlightControllerAvailable()) {
+                    getAircraftInstance()
+                            .getFlightController().startLanding(
+                            new CommonCallbacks.CompletionCallback() {
+                                @Override
+                                public void onResult(DJIError djiError) {
+                                    if(djiError!=null) {
+                                        showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
+                                    } else {
+                                        showToast("sendLand enviado para drone com Sucesso! Deve ter pousado.");
+                                    }
+                                }
+                            });
+                } else {
+                    showToast("Drone não está conectado!!!");
+                }
+                registraLogSDK(" startLanding", null);
+            } catch (Exception e) {
+                showToast("Exception: " + e.getMessage());
             }
-            registraLogSDK(" startLanding", null);
+        }
+    }
+
+    private class GetBatteryLevel extends TimerTask {
+
+        @Override
+        public void run() {
+            try {
+                if (isFlightControllerAvailable()) {
+                    checarBateria();
+                    registraLogSDK("BatteryState.getChargeRemainingInPercent()", null);
+                } else {
+                    showToast("Drone não conectado ou detectado!");
+                }
+            } catch (Exception e) {
+                showToast("Exception: " + e.getMessage());
+            }
         }
     }
 
@@ -427,8 +509,9 @@ public class ControleActivity extends AppCompatActivity {
     }
 
     public static boolean isFlightControllerAvailable() {
-        return isProductModuleAvailable() && isAircraft() && (null != getAircraftInstance()
-                .getFlightController());
+        return isProductModuleAvailable() && isAircraft() &&
+                (null != getAircraftInstance() &&
+                (null != getAircraftInstance().getFlightController()));
     }
 
     public static boolean isProductModuleAvailable() {
@@ -507,14 +590,18 @@ public class ControleActivity extends AppCompatActivity {
 
     public void checarBateria() {
         try {
-            getProductInstance().getBattery().setStateCallback(new BatteryState.Callback() {
-                @Override
-                public void onUpdate(BatteryState djiBatteryState) {
-                    nivelBateria = djiBatteryState.getChargeRemainingInPercent();
-                }
-            });
+            if(isFlightControllerAvailable()) {
+                getProductInstance().getBattery().setStateCallback(new BatteryState.Callback() {
+                    @Override
+                    public void onUpdate(BatteryState djiBatteryState) {
+                        nivelBateria = djiBatteryState.getChargeRemainingInPercent();
+                    }
+                });
 
-            showToast(String.valueOf(nivelBateria) + '%');
+                showToast(String.valueOf(nivelBateria) + '%');
+            } else {
+                showToast("Drone não conectado ou detectado!");
+            }
 
         } catch (Exception ignored) {
 
