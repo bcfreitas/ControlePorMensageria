@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
 import dji.common.util.CommonCallbacks;
@@ -51,6 +52,9 @@ public class ControleActivity extends AppCompatActivity {
     private SendVirtualStickDataTask sendVirtualStickDataTask;
     private SendTakeOff sendTakeOff;
     private SendLanding sendLanding;
+    private TurnOnMotors turnOnMotors;
+    private TurnOffMotors turnOffMotors;
+    private int nivelBateria;
 
     private float pitch;
     private float roll;
@@ -77,6 +81,10 @@ public class ControleActivity extends AppCompatActivity {
                     recebeComandoNavegacao(R.id.botao_land);
                 } else if (comando.equals("g")) {
                     recebeComandoNavegacao(R.id.botao_girar);
+                } else if (comando.equals("on")) {
+                    recebeComandoNavegacao(R.id.botao_on);
+                } else if (comando.equals("off")) {
+                    recebeComandoNavegacao(R.id.botao_off);
                 } else {
                     Toast.makeText(getApplicationContext(), comando, Toast.LENGTH_SHORT).show();
                     //Registra log do comando recebido na TextView da tela
@@ -111,6 +119,8 @@ public class ControleActivity extends AppCompatActivity {
         estados.add(R.id.botao_takeoff);
         estados.add(R.id.botao_girar);
         estados.add(R.id.botao_land);
+        estados.add(R.id.botao_on);
+        estados.add(R.id.botao_off);
 
         MensageriaThread mensageriaThread = new MensageriaThread(getApplicationContext());
         mensageriaThread.start();
@@ -118,12 +128,19 @@ public class ControleActivity extends AppCompatActivity {
         findViewById(R.id.btnSendMessage).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "Enviando mensagem 'a' para o servidor rabbitMQ.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Enviando mensagem para o servidor rabbitMQ.", Toast.LENGTH_SHORT).show();
                 Message msg2 = new Message();
                 Bundle bundleSample = new Bundle();
-                bundleSample.putString("msgParaRabbitMQ","a");
+                bundleSample.putString("msgParaRabbitMQ", ((TextView)findViewById(R.id.inputMsgRabbitMQ)).getText().toString());
                 msg2.setData(bundleSample);
                 mensageriaThread.mHandler.sendMessage(msg2);
+            }
+        });
+
+        findViewById(R.id.botao_bateria).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                checarBateria();
             }
         });
     }
@@ -155,6 +172,12 @@ public class ControleActivity extends AppCompatActivity {
                 break;
             case R.id.botao_land:
                 textoDirecao = "pousar";
+                break;
+            case R.id.botao_on:
+                textoDirecao = "ligar motor";
+                break;
+            case R.id.botao_off:
+                textoDirecao = "desligar motor";
                 break;
             default:
                 textoDirecao = "";
@@ -231,6 +254,17 @@ public class ControleActivity extends AppCompatActivity {
                 sendVirtualStickDataTimer = new Timer();
                 sendVirtualStickDataTimer.schedule(sendLanding, new Date());
                 return;
+            case R.id.botao_on:
+                turnOnMotors = new TurnOnMotors();
+                sendVirtualStickDataTimer = new Timer();
+                sendVirtualStickDataTimer.schedule(turnOnMotors, new Date());
+                return;
+            case R.id.botao_off:
+                turnOffMotors = new TurnOffMotors();
+                sendVirtualStickDataTimer = new Timer();
+                sendVirtualStickDataTimer.schedule(turnOffMotors, new Date());
+                return;
+
             default:
                 controleEsquerdo_pX = 0;
                 controleEsquerdo_pY = 0;
@@ -290,8 +324,8 @@ public class ControleActivity extends AppCompatActivity {
                         .sendVirtualStickFlightControlData(flightControlData,
                                 new CommonCallbacks.CompletionCallback() {
                                     @Override
-                                    public void onResult(DJIError djiError) {
-
+                                    public void onResult(DJIError djiError ) {
+                                        showToast(djiError.getDescription() + String.valueOf(djiError.getErrorCode()));
                                     }
                                 });
             } else {
@@ -312,13 +346,53 @@ public class ControleActivity extends AppCompatActivity {
                                 new CommonCallbacks.CompletionCallback() {
                                     @Override
                                     public void onResult(DJIError djiError) {
-                                        showToast(djiError.getDescription());
+                                        showToast(djiError.getDescription() + "; code: " + djiError.getErrorCode());
                                     }
                                 });
             } else {
                 showToast("Drone não está conectado!!!");
             }
             registraLogSDK(" startTakeOff", null);
+        }
+    }
+
+    private class TurnOnMotors extends TimerTask {
+
+        @Override
+        public void run() {
+            if (isFlightControllerAvailable()) {
+                getAircraftInstance()
+                        .getFlightController().turnOnMotors(
+                        new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+                                showToast(djiError.getDescription() + String.valueOf(djiError.getErrorCode()));
+                            }
+                        });
+            } else {
+                showToast("Drone não está conectado!!!");
+            }
+            registraLogSDK(" turnOnMotors", null);
+        }
+    }
+
+    private class TurnOffMotors extends TimerTask {
+
+        @Override
+        public void run() {
+            if (isFlightControllerAvailable()) {
+                getAircraftInstance()
+                        .getFlightController().turnOffMotors(
+                        new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+                                showToast(djiError.getDescription() + String.valueOf(djiError.getErrorCode()));
+                            }
+                        });
+            } else {
+                showToast("Drone não está conectado!!!");
+            }
+            registraLogSDK(" turnOffMotors", null);
         }
     }
 
@@ -332,7 +406,7 @@ public class ControleActivity extends AppCompatActivity {
                         new CommonCallbacks.CompletionCallback() {
                             @Override
                             public void onResult(DJIError djiError) {
-                                showToast(djiError.getDescription());
+                                showToast(djiError.getDescription() + String.valueOf(djiError.getErrorCode()));
                             }
                         });
             } else {
@@ -341,7 +415,6 @@ public class ControleActivity extends AppCompatActivity {
             registraLogSDK(" startLanding", null);
         }
     }
-
 
     private void showToast(final String toastMsg) {
         Handler handler = new Handler(Looper.getMainLooper());
@@ -430,6 +503,22 @@ public class ControleActivity extends AppCompatActivity {
                 ((ScrollView) findViewById(R.id.scrollLog)).fullScroll(View.FOCUS_DOWN);
             }
         });
+    }
+
+    public void checarBateria() {
+        try {
+            getProductInstance().getBattery().setStateCallback(new BatteryState.Callback() {
+                @Override
+                public void onUpdate(BatteryState djiBatteryState) {
+                    nivelBateria = djiBatteryState.getChargeRemainingInPercent();
+                }
+            });
+
+            showToast(String.valueOf(nivelBateria) + '%');
+
+        } catch (Exception ignored) {
+
+        }
     }
 
 }
