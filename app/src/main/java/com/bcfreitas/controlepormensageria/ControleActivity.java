@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -28,6 +29,7 @@ import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
 import dji.common.util.CommonCallbacks;
+import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.flightcontroller.FlightController;
 import dji.sdk.products.Aircraft;
@@ -56,12 +58,27 @@ public class ControleActivity extends AppCompatActivity {
     private TurnOffMotors turnOffMotors;
     private GetBatteryLevel getBatteryLevel;
     private int nivelBateria;
+    private String serialNumber;
+    private BaseComponent.ComponentListener mDJIComponentListener = new BaseComponent.ComponentListener() {
+
+        @Override
+        public void onConnectivityChange(boolean isConnected) {
+            showToast("Drone conectado = " + isConnected);
+            consultarSerialDrone();
+        }
+    };
 
     private float pitch;
     private float roll;
     private float yaw;
     private float throttle;
 
+    private BroadcastReceiver localBroadcaster= new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            atualizarViewSerial(intent.getExtras().getString("serial"));
+        }
+    };
 
     private BroadcastReceiver mensageria = new BroadcastReceiver() {
         @Override
@@ -102,12 +119,16 @@ public class ControleActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver((mensageria),
                 new IntentFilter("comandoIntent")
         );
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver((localBroadcaster),
+                new IntentFilter("serialIntent")
+        );
     }
 
     @Override
     public void onStop() {
         super.onStop();
         LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(mensageria);
+        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(localBroadcaster);
     }
 
     @Override
@@ -128,6 +149,12 @@ public class ControleActivity extends AppCompatActivity {
 
         MensageriaThread mensageriaThread = new MensageriaThread(getApplicationContext());
         mensageriaThread.start();
+
+        handler.postDelayed(new Runnable() {
+            public void run() {
+                consultarSerialDrone();
+            }
+        }, 2000);
 
         findViewById(R.id.btnSendMessage).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -606,6 +633,48 @@ public class ControleActivity extends AppCompatActivity {
         } catch (Exception ignored) {
 
         }
+    }
+
+    public void consultarSerialDrone(){
+        if(getAircraftInstance() != null && getAircraftInstance().getFlightController()!=null) {
+            getAircraftInstance().getFlightController().getSerialNumber(new CommonCallbacks.CompletionCallbackWith<String>() {
+                @Override
+                public void onSuccess(String s) {
+                    serialNumber = s;
+                    enviaDadosParaThreadPrincipal(s + "\n Conectado!");
+                }
+
+                @Override
+                public void onFailure(DJIError djiError) {
+                    showToast("getSerialNumber failed: " + djiError.getDescription());
+                    enviaDadosParaThreadPrincipal(null);
+                }
+            });
+        } else {
+            enviaDadosParaThreadPrincipal(null);
+        }
+    }
+
+    public void atualizarViewSerial(String serial){
+        if(serial != null) {
+            ((TextView) findViewById(R.id.serialDrone)).setText(serialNumber);
+            ((TextView) findViewById(R.id.serialDrone)).setTextColor(getResources().getColor(R.color.green));
+        } else {
+            ((TextView) findViewById(R.id.serialDrone)).setText("Desconectado!");
+            ((TextView) findViewById(R.id.serialDrone)).setTextColor(getResources().getColor(R.color.red));
+        }
+    }
+
+
+    /**
+     * Usado para enviar intent de modificação do texto do serial do drone
+     * @param message
+     */
+    private void enviaDadosParaThreadPrincipal(String message){
+        Intent intent = new Intent("serialIntent");
+        intent.removeExtra("serial");
+        intent.putExtra ("serial", message);
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
     }
 
 }
