@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -29,15 +28,13 @@ import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
 import dji.common.util.CommonCallbacks;
-import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
-import dji.sdk.flightcontroller.FlightController;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 
 public class ControleActivity extends AppCompatActivity {
 
-    Handler handler = new Handler();
+    Handler handler = new Handler(Looper.getMainLooper());
     int tempoParaConsulta = 2000;
     boolean sincronizacaoAtiva;
     Collection<Integer> estados = new ArrayList<Integer>();
@@ -59,28 +56,31 @@ public class ControleActivity extends AppCompatActivity {
     private GetBatteryLevel getBatteryLevel;
     private int nivelBateria;
     private String serialNumber;
-    private BaseComponent.ComponentListener mDJIComponentListener = new BaseComponent.ComponentListener() {
-
-        @Override
-        public void onConnectivityChange(boolean isConnected) {
-            showToast("Drone conectado = " + isConnected);
-            consultarSerialDrone();
-        }
-    };
+    public static String ACTION_SERIAL_DRONE = "com.bcfreitas.controlepormensageria.ACTION_SERIAL_DRONE";
+    public static String ACTION_MENSAGERIA = "com.bcfreitas.controlepormensageria.ACTION_MENSAGERIA";
 
     private float pitch;
     private float roll;
     private float yaw;
     private float throttle;
 
-    private BroadcastReceiver localBroadcaster= new BroadcastReceiver() {
+    private BroadcastReceiver broadcastConexaoDrone = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            atualizarViewSerial(intent.getExtras().getString("serial"));
+            consultarSerialDrone();
         }
     };
 
-    private BroadcastReceiver mensageria = new BroadcastReceiver() {
+    private BroadcastReceiver broadcastNumeroSerial = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(intent.getAction().equals(ControleActivity.ACTION_SERIAL_DRONE)){
+                atualizarViewSerial((String)intent.getExtras().get("serial"));
+            }
+        }
+    };
+
+    private BroadcastReceiver broadcastMensageria = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if(intent.getExtras().getString("comando")!=null) {
@@ -109,6 +109,7 @@ public class ControleActivity extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), comando, Toast.LENGTH_SHORT).show();
                     //Registra log do comando recebido na TextView da tela
                     TextView logView = findViewById(R.id.logComandos);
+                    registraLog(logView, comando);
                 }
             }
         }
@@ -116,19 +117,23 @@ public class ControleActivity extends AppCompatActivity {
 
     public void onStart() {
         super.onStart();
-        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver((mensageria),
-                new IntentFilter("comandoIntent")
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver((broadcastMensageria),
+                new IntentFilter(ControleActivity.ACTION_MENSAGERIA)
         );
-        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver((localBroadcaster),
-                new IntentFilter("serialIntent")
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver((broadcastNumeroSerial),
+                new IntentFilter(ControleActivity.ACTION_SERIAL_DRONE)
+        );
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver((broadcastConexaoDrone),
+                new IntentFilter(MainActivity.ACTION_CONEXAO_DRONE)
         );
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(mensageria);
-        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(localBroadcaster);
+        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(broadcastMensageria);
+        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(broadcastNumeroSerial);
+        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(broadcastConexaoDrone);
     }
 
     @Override
@@ -147,14 +152,14 @@ public class ControleActivity extends AppCompatActivity {
         estados.add(R.id.botao_off);
         estados.add(R.id.botao_bateria);
 
-        MensageriaThread mensageriaThread = new MensageriaThread(getApplicationContext());
+        mensageriaThread = new MensageriaThread(getApplicationContext());
         mensageriaThread.start();
 
         handler.postDelayed(new Runnable() {
             public void run() {
                 consultarSerialDrone();
             }
-        }, 2000);
+        }, 6000);
 
         findViewById(R.id.btnSendMessage).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -233,6 +238,14 @@ public class ControleActivity extends AppCompatActivity {
         String log = (String) logView.getText();
         DateFormat df = DateFormat.getInstance();
         log = log + "\n" + (df.format(new Date())) + " - " + textoDirecao;
+        logView.setText(log);
+        ((ScrollView) findViewById(R.id.scrollLog)).fullScroll(View.FOCUS_DOWN);
+    }
+
+    public void registraLog(TextView logView, String comando) {
+        String log = (String) logView.getText();
+        DateFormat df = DateFormat.getInstance();
+        log = log + "\n" + (df.format(new Date())) + " - " + comando;
         logView.setText(log);
         ((ScrollView) findViewById(R.id.scrollLog)).fullScroll(View.FOCUS_DOWN);
     }
@@ -641,17 +654,22 @@ public class ControleActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(String s) {
                     serialNumber = s;
-                    enviaDadosParaThreadPrincipal(s + "\n Conectado!");
+                    enviaSerialParaControleActivity(s);
+                    enviarSerialParaMensageriaThread(s);
                 }
 
                 @Override
                 public void onFailure(DJIError djiError) {
                     showToast("getSerialNumber failed: " + djiError.getDescription());
-                    enviaDadosParaThreadPrincipal(null);
+                    enviaSerialParaControleActivity(null);
+                    enviarSerialParaMensageriaThread("xx");
                 }
             });
         } else {
-            enviaDadosParaThreadPrincipal(null);
+            showToast("Drone não conectado!");
+            enviaSerialParaControleActivity(null);
+            enviarSerialParaMensageriaThread("xx");
+
         }
     }
 
@@ -670,11 +688,29 @@ public class ControleActivity extends AppCompatActivity {
      * Usado para enviar intent de modificação do texto do serial do drone
      * @param message
      */
-    private void enviaDadosParaThreadPrincipal(String message){
-        Intent intent = new Intent("serialIntent");
+    private void enviaSerialParaControleActivity(String message){
+        Intent intent = new Intent(ControleActivity.ACTION_SERIAL_DRONE);
         intent.removeExtra("serial");
         intent.putExtra ("serial", message);
         LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+    }
+
+    /**
+     * Usado para atualizar o serial que deve servir para filtrar as mensagens
+     * recebidas pela Thread responsável com a comunicação do rabbitMQ.
+     * @param serial
+     */
+    private void enviarSerialParaMensageriaThread(String serial) {
+        Message msg = new Message();
+        Bundle bundleSample = new Bundle();
+        bundleSample.putString("serialDrone", serial);
+        msg.setData(bundleSample);
+        if(mensageriaThread.mHandler != null) {
+            mensageriaThread.mHandler.sendMessage(msg);
+            showToast("enviou serial " + serial + "para thread mensageria.");
+        } else {
+            showToast("handler da thread mensageria nulo");
+        }
     }
 
 }

@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Array;
 import java.util.concurrent.TimeoutException;
 
 class MensageriaThread extends Thread {
@@ -31,6 +33,7 @@ class MensageriaThread extends Thread {
     private Context context;
     private Intent intent;
     private LocalBroadcastManager broadcaster;
+    private String serialDrone;
 
     //nome da fila de mensagens no servidor rabbitMQ
     private final static String QUEUE_NAME = "controlePorMensageria";
@@ -49,7 +52,7 @@ class MensageriaThread extends Thread {
     public MensageriaThread(Context context){
         this.context = context;
         this.broadcaster = LocalBroadcastManager.getInstance(context);
-        this.intent = new Intent("comandoIntent");
+        this.intent = new Intent(ControleActivity.ACTION_MENSAGERIA);
     }
 
     public void run() {
@@ -91,6 +94,13 @@ class MensageriaThread extends Thread {
                         System.out.println("entrou no if da msg para rabbitMQ");
                         enviaMensagemRabbitMQ(msg.getData().getString("msgParaRabbitMQ"));
                     }
+
+                    if(msg.getData().getString("serialDrone")!=null){
+                        atualizarSerialDrone(msg.getData().getString("serialDrone"));
+                        Log.println(Log.INFO, "testesBruno", msg.getData().getString("serialDrone"));
+                    }
+
+                    Log.println(Log.INFO, "testesBruno", "a ThreadMensageria recebeu uma mensagem: " + msg.getData().toString());
                 }
             };
 
@@ -109,11 +119,26 @@ class MensageriaThread extends Thread {
                                 try {
                                     long deliveryTag = envelope.getDeliveryTag();
                                     String amqpIncomingMessage = new String(body, "UTF-8");
-                                    enviaDadosParaThreadPrincipal(amqpIncomingMessage);
-                                    System.out.println("Recebida mensagem rabbitMQ: " + amqpIncomingMessage + "'");
-                                    channel.basicAck(deliveryTag, false);
+                                    String[] arrayBody = amqpIncomingMessage.split(";");
+                                    String droneDestino = arrayBody[0];
+                                    //String comando = arrayBody[1];
+                                    //String dataEnvio = arrayBody[2];
+                                    String droneDestinoValue = droneDestino.split(":")[1];
+                                    //String comandoValue = droneDestino.split(":")[2];
+                                    //String dataEnvioValue = dataEnvio.split(":")[1];
+                                    if(droneDestinoValue.equals(serialDrone)){
+                                        enviaDadosParaThreadPrincipal(amqpIncomingMessage);
+                                        Log.println(Log.INFO,"testesBruno","recebida msg com serial correto");
+                                        System.out.println("Recebida mensagem rabbitMQ: " + amqpIncomingMessage + "'");
+                                        channel.basicAck(deliveryTag, false);
+                                    } else {
+                                        Log.println(Log.INFO,"testesBruno","o serial aqui era: " + serialDrone + ". A msg na fila é para: " + droneDestino);
+                                        enviaDadosParaThreadPrincipal("o serial aqui era: " + serialDrone + ". A msg na fila é para: " + droneDestino);
+                                    }
+
+
                                 } catch (Exception e) {
-                                    System.out.println("Erro interno: " + e.getMessage());
+                                    Log.println(Log.ERROR, "testesBruno", e.getMessage() + e.getLocalizedMessage() + e.getCause().getLocalizedMessage() + e.toString());
                                 };
                             }
                         }
@@ -154,6 +179,10 @@ class MensageriaThread extends Thread {
         intent.removeExtra("comando");
         intent.putExtra ("comando", message);
         broadcaster.sendBroadcast(intent);
+    }
+
+    public void atualizarSerialDrone(String serial){
+        this.serialDrone = serial;
     }
 }
 

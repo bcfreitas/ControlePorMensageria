@@ -17,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getName();
     public static final String FLAG_CONNECTION_CHANGE = "dji_sdk_connection_change";
+    public static final String ACTION_CONEXAO_DRONE = "com.bcfreitas.controlepormensageria.ACTION_CONEXAO_DRONE";
     private static BaseProduct mProduct;
     private Handler mHandler;
 
@@ -209,8 +211,11 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            Intent intent = new Intent(FLAG_CONNECTION_CHANGE);
-            sendBroadcast(intent);
+            //Intent intent = new Intent(FLAG_CONNECTION_CHANGE);
+            //sendBroadcast(intent);
+            Intent intentParaControle = new Intent(ACTION_CONEXAO_DRONE);
+            intentParaControle.putExtra("dados", "conexao");
+            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intentParaControle);
         }
     };
 
