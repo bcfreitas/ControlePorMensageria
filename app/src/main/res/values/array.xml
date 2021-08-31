@@ -1,0 +1,8 @@
+<resources>
+    <string-array name="spinnerItems">
+        <item>canal_a</item>
+        <item>canal_b</item>
+        <item>canal_c</item>
+        <item>controlePorMensageria</item>
+    </string-array>
+</resources>

@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.Array;
 import java.util.concurrent.TimeoutException;
 
 class MensageriaThread extends Thread {
@@ -34,8 +33,7 @@ class MensageriaThread extends Thread {
     private Intent intent;
     private LocalBroadcastManager broadcaster;
     private String serialDrone;
-
-    //nome da fila de mensagens no servidor rabbitMQ
+    private String filaParaMensageria;
     private final static String QUEUE_NAME = "controlePorMensageria";
 
     //canal para transmissão de dados contínua com o servidor rabbitMQ
@@ -49,10 +47,12 @@ class MensageriaThread extends Thread {
     Connection connection;
     Connection connectionEnvio;
 
-    public MensageriaThread(Context context){
+    public MensageriaThread(Context context, String filaParaMensageria){
         this.context = context;
         this.broadcaster = LocalBroadcastManager.getInstance(context);
         this.intent = new Intent(ControleActivity.ACTION_MENSAGERIA);
+        this.filaParaMensageria = filaParaMensageria;
+        Log.println(Log.INFO, "testesBruno", "fila selecionada para mensageria: " + filaParaMensageria);
     }
 
     public void run() {
@@ -71,7 +71,7 @@ class MensageriaThread extends Thread {
                 channelEnvio = connectionEnvio.createChannel();
                 channel.queueDeclare(QUEUE_NAME, true, false, false, null);
                 channelEnvio.queueDeclare(QUEUE_NAME, true, false, false, null);
-                System.out.println("Conexão e canal AMQP criado com sucesso!");
+                Log.println(Log.INFO, "testesBruno", "Conexão e canal AMQP criado com sucesso! Na fila " + filaParaMensageria);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             } catch (NoSuchAlgorithmException e) {
@@ -120,20 +120,19 @@ class MensageriaThread extends Thread {
                                     long deliveryTag = envelope.getDeliveryTag();
                                     String amqpIncomingMessage = new String(body, "UTF-8");
                                     String[] arrayBody = amqpIncomingMessage.split(";");
-                                    String droneDestino = arrayBody[0];
-                                    //String comando = arrayBody[1];
-                                    //String dataEnvio = arrayBody[2];
-                                    String droneDestinoValue = droneDestino.split(":")[1];
-                                    //String comandoValue = droneDestino.split(":")[2];
-                                    //String dataEnvioValue = dataEnvio.split(":")[1];
-                                    if(droneDestinoValue.equals(serialDrone)){
+
+                                    String droneDestino = arrayBody[0].split(":")[1];
+                                    String comando = arrayBody[1].split(":")[1];
+                                    String data = arrayBody[2].split(":")[1];;
+
+                                    if(droneDestino.equals(serialDrone)){
                                         enviaDadosParaThreadPrincipal(amqpIncomingMessage);
                                         Log.println(Log.INFO,"testesBruno","recebida msg com serial correto");
-                                        System.out.println("Recebida mensagem rabbitMQ: " + amqpIncomingMessage + "'");
                                         channel.basicAck(deliveryTag, false);
                                     } else {
                                         Log.println(Log.INFO,"testesBruno","o serial aqui era: " + serialDrone + ". A msg na fila é para: " + droneDestino);
                                         enviaDadosParaThreadPrincipal("o serial aqui era: " + serialDrone + ". A msg na fila é para: " + droneDestino);
+                                        channel.basicNack(deliveryTag, false, false);
                                     }
 
 

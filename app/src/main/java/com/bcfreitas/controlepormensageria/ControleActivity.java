@@ -58,6 +58,7 @@ public class ControleActivity extends AppCompatActivity {
     private String serialNumber;
     public static String ACTION_SERIAL_DRONE = "com.bcfreitas.controlepormensageria.ACTION_SERIAL_DRONE";
     public static String ACTION_MENSAGERIA = "com.bcfreitas.controlepormensageria.ACTION_MENSAGERIA";
+    public String filaParaMensageria;
 
     private float pitch;
     private float roll;
@@ -139,6 +140,10 @@ public class ControleActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Intent intent = getIntent();
+        filaParaMensageria = (String) intent.getExtras().get("canalParaMensageria");
+
         setContentView(R.layout.activity_controle);
         estados.add(R.id.botao_frente);
         estados.add(R.id.botao_centro);

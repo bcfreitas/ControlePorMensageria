@@ -9,7 +9,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -59,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private List<String> missingPermission = new ArrayList<>();
     private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
     private static final int REQUEST_PERMISSION_CODE = 12345;
+    public String canalParaMensageria;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +77,9 @@ public class MainActivity extends AppCompatActivity {
         //Initialize DJI SDK Manager
         mHandler = new Handler(Looper.getMainLooper());
 
+        //Carrega opções de canais para mensageria
+        Spinner spinner = (Spinner) findViewById(R.id.selectChannel);
+        canalParaMensageria = (String) spinner.getSelectedItem();
     }
 
     /**
@@ -248,6 +254,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void acessarControle(android.view.View view) {
         Intent intent = new Intent(MainActivity.this, ControleActivity.class);
+        intent.putExtra("canalParaMensageria", canalParaMensageria);
         startActivity(intent);
     }
 
