@@ -133,6 +133,18 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
+            android:id="@+id/rollPitchControlMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginTop="44dp"
+            android:text="RollPitchControlMode:"
+            android:textColor="@color/white"
+            android:textSize="8sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
             android:id="@+id/serialDrone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -222,7 +234,7 @@
             android:layout_marginTop="1dp"
             android:background="@color/white"
             android:text=""
-            android:textColor="@color/white" />
+            android:textColor="@color/black" />
 
     </ScrollView>
 

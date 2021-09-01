@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -27,6 +28,7 @@ import java.util.TimerTask;
 import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
+import dji.common.flightcontroller.virtualstick.RollPitchControlMode;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.products.Aircraft;
@@ -86,26 +88,35 @@ public class ControleActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if(intent.getExtras().getString("comando")!=null) {
                 String comando = intent.getExtras().getString("comando");
+                int intensidade;
+                if(comando.contains("!")) {
+                    String strIntensidade = comando.split("!")[1];
+                     intensidade = Integer.valueOf(strIntensidade);
+                    comando = comando.split("!")[0];
+                } else {
+                    intensidade = 1;
+                }
+
                 if (comando.equals("a")) {
-                    recebeComandoNavegacao(R.id.botao_esquerda);
+                    recebeComandoNavegacao(R.id.botao_esquerda, intensidade);
                 } else if (comando.equals("d")) {
-                    recebeComandoNavegacao(R.id.botao_direita);
+                    recebeComandoNavegacao(R.id.botao_direita, intensidade);
                 } else if (comando.equals("w")) {
-                    recebeComandoNavegacao(R.id.botao_frente);
+                    recebeComandoNavegacao(R.id.botao_frente, intensidade);
                 } else if (comando.equals("s")) {
-                    recebeComandoNavegacao(R.id.botao_tras);
+                    recebeComandoNavegacao(R.id.botao_tras, intensidade);
                 } else if (comando.equals("t")) {
-                    recebeComandoNavegacao(R.id.botao_takeoff);
+                    recebeComandoNavegacao(R.id.botao_takeoff, intensidade);
                 } else if (comando.equals("l")) {
-                    recebeComandoNavegacao(R.id.botao_land);
+                    recebeComandoNavegacao(R.id.botao_land, intensidade);
                 } else if (comando.equals("g")) {
-                    recebeComandoNavegacao(R.id.botao_girar);
+                    recebeComandoNavegacao(R.id.botao_girar, intensidade);
                 } else if (comando.equals("on")) {
-                    recebeComandoNavegacao(R.id.botao_on);
+                    recebeComandoNavegacao(R.id.botao_on, intensidade);
                 } else if (comando.equals("off")) {
-                    recebeComandoNavegacao(R.id.botao_off);
+                    recebeComandoNavegacao(R.id.botao_off, intensidade);
                 } else if (comando.equals("bat")) {
-                    recebeComandoNavegacao(R.id.botao_bateria);
+                    recebeComandoNavegacao(R.id.botao_bateria, intensidade);
                 } else {
                     Toast.makeText(getApplicationContext(), comando, Toast.LENGTH_SHORT).show();
                     //Registra log do comando recebido na TextView da tela
@@ -157,64 +168,75 @@ public class ControleActivity extends AppCompatActivity {
         estados.add(R.id.botao_off);
         estados.add(R.id.botao_bateria);
 
-        mensageriaThread = new MensageriaThread(getApplicationContext());
+        mensageriaThread = MensageriaThread.getInstance();
+        mensageriaThread.setBroadcaster(getApplicationContext());
+        mensageriaThread.setFilaParaMensageria(filaParaMensageria);
         mensageriaThread.start();
 
         handler.postDelayed(new Runnable() {
             public void run() {
                 consultarSerialDrone();
             }
-        }, 6000);
+        }, 5000);
 
-        findViewById(R.id.btnSendMessage).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "Enviando mensagem para o servidor rabbitMQ.", Toast.LENGTH_SHORT).show();
-                Message msg2 = new Message();
-                Bundle bundleSample = new Bundle();
-                bundleSample.putString("msgParaRabbitMQ", ((TextView)findViewById(R.id.inputMsgRabbitMQ)).getText().toString());
-                msg2.setData(bundleSample);
-                mensageriaThread.mHandler.sendMessage(msg2);
+        handler.postDelayed(new Runnable() {
+            public void run() {
+                atualizarAcaoBotaoEnviar();
             }
-        });
+        }, 6000);
 
         findViewById(R.id.botao_bateria).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recebeComandoNavegacao(R.id.botao_bateria);
+                recebeComandoNavegacao(R.id.botao_bateria, null);
             }
         });
 
         findViewById(R.id.botao_on).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recebeComandoNavegacao(R.id.botao_on);
+                recebeComandoNavegacao(R.id.botao_on, null);
             }
         });
 
         findViewById(R.id.botao_off).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recebeComandoNavegacao(R.id.botao_off);
+                recebeComandoNavegacao(R.id.botao_off, null);
+            }
+        });
+    }
+
+    public void atualizarAcaoBotaoEnviar() {
+        findViewById(R.id.btnSendMessage).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(getApplicationContext(), "Enviando mensagem para o servidor rabbitMQ.", Toast.LENGTH_SHORT).show();
+                Message msg2 = new Message();
+                Bundle bundleSample = new Bundle();
+                String dadosParaServidor = "drone:" + serialNumber + ";comando:" + ((TextView) findViewById(R.id.inputMsgRabbitMQ)).getText().toString().trim() + ";data:" + System.currentTimeMillis();
+                bundleSample.putString("msgParaRabbitMQ", dadosParaServidor);
+                msg2.setData(bundleSample);
+                mensageriaThread.mHandler.sendMessage(msg2);
             }
         });
     }
 
     //adiciona log do comando à TextView da tela, para consulta.
-    private void registraLog(TextView logView, int direcao) {
+    private void registraLog(TextView logView, int direcao, Integer intensidade) {
         String textoDirecao;
         switch (direcao){
             case R.id.botao_direita:
-                textoDirecao = "direita";
+                textoDirecao = "direita " + intensidade;
                 break;
             case R.id.botao_esquerda:
-                textoDirecao = "esquerda";
+                textoDirecao = "esquerda "  + intensidade;
                 break;
             case R.id.botao_frente:
-                textoDirecao = "para frente";
+                textoDirecao = "para frente "  + intensidade;
                 break;
             case R.id.botao_tras:
-                textoDirecao = "para trás";
+                textoDirecao = "para trás "  + intensidade;
                 break;
             case R.id.botao_centro:
                 textoDirecao = "pare!";
@@ -223,7 +245,7 @@ public class ControleActivity extends AppCompatActivity {
                 textoDirecao = "levantar vôo";
                 break;
             case R.id.botao_girar:
-                textoDirecao = "girar";
+                textoDirecao = "girar "  + intensidade;
                 break;
             case R.id.botao_land:
                 textoDirecao = "pousar";
@@ -255,7 +277,7 @@ public class ControleActivity extends AppCompatActivity {
         ((ScrollView) findViewById(R.id.scrollLog)).fullScroll(View.FOCUS_DOWN);
     }
 
-    public void recebeComandoNavegacao(int direcao) {
+    public void recebeComandoNavegacao(int direcao, Integer intensidade) {
         //Executa ação/comando
         executaComando(direcao);
         this.ultimoComando = direcao;
@@ -263,7 +285,7 @@ public class ControleActivity extends AppCompatActivity {
 
         //Registra log do comando recebido na TextView da tela
         TextView logView = findViewById(R.id.logComandos);
-        registraLog(logView, direcao);
+        registraLog(logView, direcao, intensidade);
 
         //Cria thread para voltar ao estado parado após o intervalo de tempo definido, se
         //o comando for diferente do estado inicial
@@ -275,10 +297,10 @@ public class ControleActivity extends AppCompatActivity {
             }, tempoPadraoComando);
         }
 
-        enviaComandoParaDrone(direcao);
+        enviaComandoParaDrone(direcao, intensidade);
     }
 
-    public void enviaComandoParaDrone(int direcao){
+    public void enviaComandoParaDrone(int direcao, Integer intensidade){
         //Coordenadas X e Y do controle virtual anaĺogico esquerdo (girar, subir/descer - eixo Z )
         float controleEsquerdo_pX = 0;
         float controleEsquerdo_pY = 0;
@@ -289,16 +311,16 @@ public class ControleActivity extends AppCompatActivity {
 
         switch (direcao) {
             case R.id.botao_direita:
-                controleDireito_pX = 0.3f;
+                controleDireito_pX = intensidade;
                 break;
             case R.id.botao_esquerda:
-                controleDireito_pX = -0.3f;
+                controleDireito_pX = -1*intensidade;
                 break;
             case R.id.botao_frente:
-                controleDireito_pY = 0.3f;
+                controleDireito_pY = intensidade;
                 break;
             case R.id.botao_tras:
-                controleDireito_pY = -0.3f;
+                controleDireito_pY = -1*intensidade;
                 break;
             case R.id.botao_centro:
                 controleEsquerdo_pX = 0;
@@ -313,7 +335,7 @@ public class ControleActivity extends AppCompatActivity {
                 return;
             case R.id.botao_girar:
                 //único giro implementado é para esquerda
-                controleEsquerdo_pX = -0.3f;
+                controleEsquerdo_pX = -1*intensidade;
                 break;
             case R.id.botao_land:
                 sendLanding = new SendLanding();
@@ -377,7 +399,7 @@ public class ControleActivity extends AppCompatActivity {
 
         sendVirtualStickDataTask = new SendVirtualStickDataTask();
         sendVirtualStickDataTimer = new Timer();
-        sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, new Date());
+        sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, 100,200);
     }
 
     private class SendVirtualStickDataTask extends TimerTask {
@@ -613,6 +635,7 @@ public class ControleActivity extends AppCompatActivity {
     }
 
     public void registraLogSDK(String levantarOuPousar, FlightControlData flightControlData){
+        Log.println(Log.INFO, "testesBruno", "chamou registra log SDK");
         Handler handler = new Handler(Looper.getMainLooper());
         handler.post(new Runnable() {
             @Override
@@ -628,6 +651,7 @@ public class ControleActivity extends AppCompatActivity {
                 }
 
                 logViewSDK.setText(log);
+                Log.println(Log.INFO, "testesBruno", "setou esse texto no log sdk" + log);
                 ((ScrollView) findViewById(R.id.scrollLog)).fullScroll(View.FOCUS_DOWN);
             }
         });
@@ -661,6 +685,7 @@ public class ControleActivity extends AppCompatActivity {
                     serialNumber = s;
                     enviaSerialParaControleActivity(s);
                     enviarSerialParaMensageriaThread(s);
+                    atualizarAcaoBotaoEnviar();
                 }
 
                 @Override
@@ -668,12 +693,16 @@ public class ControleActivity extends AppCompatActivity {
                     showToast("getSerialNumber failed: " + djiError.getDescription());
                     enviaSerialParaControleActivity(null);
                     enviarSerialParaMensageriaThread("xx");
+                    serialNumber="xx";
+                    atualizarAcaoBotaoEnviar();
                 }
             });
         } else {
             showToast("Drone não conectado!");
             enviaSerialParaControleActivity(null);
             enviarSerialParaMensageriaThread("xx");
+            serialNumber="xx";
+            atualizarAcaoBotaoEnviar();
 
         }
     }
@@ -682,6 +711,17 @@ public class ControleActivity extends AppCompatActivity {
         if(serial != null) {
             ((TextView) findViewById(R.id.serialDrone)).setText(serialNumber);
             ((TextView) findViewById(R.id.serialDrone)).setTextColor(getResources().getColor(R.color.green));
+            String rowPitchControlMode;
+            if(isFlightControllerAvailable()){
+                if(getAircraftInstance().getFlightController().getRollPitchControlMode().value()==RollPitchControlMode.ANGLE.value()){
+                    rowPitchControlMode = "ANGLE";
+                } else {
+                    rowPitchControlMode = "VELOCITY";
+                };
+                ((TextView) findViewById(R.id.rollPitchControlMode)).setText(
+                        ((TextView) findViewById(R.id.rollPitchControlMode)).getText() + rowPitchControlMode
+                );
+            }
         } else {
             ((TextView) findViewById(R.id.serialDrone)).setText("Desconectado!");
             ((TextView) findViewById(R.id.serialDrone)).setTextColor(getResources().getColor(R.color.red));

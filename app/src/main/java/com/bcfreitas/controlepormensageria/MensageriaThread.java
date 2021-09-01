@@ -17,10 +17,13 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class MensageriaThread extends Thread {
     //responsável por receber dados da Thread principal
@@ -34,7 +37,7 @@ class MensageriaThread extends Thread {
     private LocalBroadcastManager broadcaster;
     private String serialDrone;
     private String filaParaMensageria;
-    private final static String QUEUE_NAME = "controlePorMensageria";
+    private static MensageriaThread mensageriaThreadInstance;
 
     //canal para transmissão de dados contínua com o servidor rabbitMQ
     Channel channel;
@@ -47,12 +50,15 @@ class MensageriaThread extends Thread {
     Connection connection;
     Connection connectionEnvio;
 
-    public MensageriaThread(Context context, String filaParaMensageria){
-        this.context = context;
-        this.broadcaster = LocalBroadcastManager.getInstance(context);
+    private MensageriaThread(){
         this.intent = new Intent(ControleActivity.ACTION_MENSAGERIA);
-        this.filaParaMensageria = filaParaMensageria;
-        Log.println(Log.INFO, "testesBruno", "fila selecionada para mensageria: " + filaParaMensageria);
+    }
+
+    public static MensageriaThread getInstance(){
+        if(mensageriaThreadInstance == null) {
+            mensageriaThreadInstance = new MensageriaThread();
+        }
+        return mensageriaThreadInstance;
     }
 
     public void run() {
@@ -69,8 +75,8 @@ class MensageriaThread extends Thread {
                 };
                 channel = connection.createChannel();
                 channelEnvio = connectionEnvio.createChannel();
-                channel.queueDeclare(QUEUE_NAME, true, false, false, null);
-                channelEnvio.queueDeclare(QUEUE_NAME, true, false, false, null);
+                channel.queueDeclare(filaParaMensageria, true, false, false, null);
+                channelEnvio.queueDeclare(filaParaMensageria, true, false, false, null);
                 Log.println(Log.INFO, "testesBruno", "Conexão e canal AMQP criado com sucesso! Na fila " + filaParaMensageria);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
@@ -107,7 +113,7 @@ class MensageriaThread extends Thread {
             try {
                 //abertura do canal contínuo de comunicação para recepção de dados
                 //do servidor rabbitMQ pelo protocolo AMQP
-                channel.basicConsume(QUEUE_NAME, false, "",
+                channel.basicConsume(filaParaMensageria, false, "",
                         new DefaultConsumer(channel) {
                             @Override
                             //método chamado quando uma mensagem é recebida
@@ -119,30 +125,39 @@ class MensageriaThread extends Thread {
                                 try {
                                     long deliveryTag = envelope.getDeliveryTag();
                                     String amqpIncomingMessage = new String(body, "UTF-8");
-                                    String[] arrayBody = amqpIncomingMessage.split(";");
+                                    Pattern pattern = Pattern.compile("[a-z]+\u003A([A-Z]|[0-9])+\u003B[a-z]+\u003A[a-z]+(\u0021[0-9])?\u003B[a-z]+\u003A[0-9]", Pattern.CASE_INSENSITIVE);
+                                    Matcher matcher = pattern.matcher(amqpIncomingMessage);
+                                    boolean matchFound = matcher.find();
+                                    if (matchFound) {
+                                        String[] arrayBody = amqpIncomingMessage.split(";");
 
-                                    String droneDestino = arrayBody[0].split(":")[1];
-                                    String comando = arrayBody[1].split(":")[1];
-                                    String data = arrayBody[2].split(":")[1];;
+                                        String droneDestino = arrayBody[0].split(":")[1];
+                                        String comando = arrayBody[1].split(":")[1];
+                                        String data = arrayBody[2].split(":")[1];
 
-                                    if(droneDestino.equals(serialDrone)){
-                                        enviaDadosParaThreadPrincipal(amqpIncomingMessage);
-                                        Log.println(Log.INFO,"testesBruno","recebida msg com serial correto");
-                                        channel.basicAck(deliveryTag, false);
+                                        if (droneDestino.equals(serialDrone)) {
+                                            enviaDadosParaThreadPrincipal(comando);
+                                            Log.println(Log.INFO, "testesBruno", "recebida msg com serial correto");
+                                            channel.basicAck(deliveryTag, false);
+                                        } else {
+                                            Log.println(Log.INFO, "testesBruno", "o serial aqui era: " + serialDrone + ". A msg na fila é para: " + droneDestino);
+                                            enviaDadosParaThreadPrincipal(comando + " [rejeitado, serial incorreto]");
+                                            channel.basicNack(deliveryTag, false, false);
+                                        }
                                     } else {
-                                        Log.println(Log.INFO,"testesBruno","o serial aqui era: " + serialDrone + ". A msg na fila é para: " + droneDestino);
-                                        enviaDadosParaThreadPrincipal("o serial aqui era: " + serialDrone + ". A msg na fila é para: " + droneDestino);
+                                        Log.println(Log.INFO,"testesBruno","mensagem fora do padrão!");
+                                        enviaDadosParaThreadPrincipal(amqpIncomingMessage + " [rejeitado, fora do padrão]");
                                         channel.basicNack(deliveryTag, false, false);
                                     }
 
-
                                 } catch (Exception e) {
                                     Log.println(Log.ERROR, "testesBruno", e.getMessage() + e.getLocalizedMessage() + e.getCause().getLocalizedMessage() + e.toString());
-                                };
+                                }
                             }
                         }
                 );
             } catch (IOException e) {
+                Log.println(Log.ERROR, "testesBruno", e.getLocalizedMessage() + e.getCause());
                 e.printStackTrace();
             }
 
@@ -162,7 +177,7 @@ class MensageriaThread extends Thread {
     private void enviaMensagemRabbitMQ(String message){
         System.out.println("entrou metodo envia msg rabbit");
         try {
-            channelEnvio.basicPublish("", QUEUE_NAME, null, message.getBytes());
+            channelEnvio.basicPublish("", filaParaMensageria, null, message.getBytes());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -182,6 +197,14 @@ class MensageriaThread extends Thread {
 
     public void atualizarSerialDrone(String serial){
         this.serialDrone = serial;
+    }
+
+    public void setBroadcaster(Context context) {
+        this.broadcaster = LocalBroadcastManager.getInstance(context);
+    }
+
+    public void setFilaParaMensageria(String filaParaMensageria) {
+        this.filaParaMensageria = filaParaMensageria;
     }
 }
 

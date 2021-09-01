@@ -76,10 +76,6 @@ public class MainActivity extends AppCompatActivity {
 
         //Initialize DJI SDK Manager
         mHandler = new Handler(Looper.getMainLooper());
-
-        //Carrega opções de canais para mensageria
-        Spinner spinner = (Spinner) findViewById(R.id.selectChannel);
-        canalParaMensageria = (String) spinner.getSelectedItem();
     }
 
     /**
@@ -253,6 +249,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void acessarControle(android.view.View view) {
+        Spinner spinner = (Spinner) findViewById(R.id.selectChannel);
+        canalParaMensageria = spinner.getSelectedItem().toString();
+
         Intent intent = new Intent(MainActivity.this, ControleActivity.class);
         intent.putExtra("canalParaMensageria", canalParaMensageria);
         startActivity(intent);
