@@ -125,7 +125,7 @@ class MensageriaThread extends Thread {
                                 try {
                                     long deliveryTag = envelope.getDeliveryTag();
                                     String amqpIncomingMessage = new String(body, "UTF-8");
-                                    Pattern pattern = Pattern.compile("[a-z]+\u003A([A-Z]|[0-9])+\u003B[a-z]+\u003A[a-z]+(\u0021[0-9])?\u003B[a-z]+\u003A[0-9]", Pattern.CASE_INSENSITIVE);
+                                    Pattern pattern = Pattern.compile("[a-z]+\u003A([A-Z]|[0-9])+\u003B[a-z]+\u003A[0-9]{0,2}[a-z]+[0-9]?\u003B[a-z]+\u003A[0-9]+", Pattern.CASE_INSENSITIVE);
                                     Matcher matcher = pattern.matcher(amqpIncomingMessage);
                                     boolean matchFound = matcher.find();
                                     if (matchFound) {

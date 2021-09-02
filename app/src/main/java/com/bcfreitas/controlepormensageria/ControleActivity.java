@@ -13,7 +13,11 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.CompoundButton;
 import android.widget.ScrollView;
+import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +32,7 @@ import java.util.TimerTask;
 import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
+import dji.common.flightcontroller.virtualstick.FlightCoordinateSystem;
 import dji.common.flightcontroller.virtualstick.RollPitchControlMode;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseProduct;
@@ -67,6 +72,12 @@ public class ControleActivity extends AppCompatActivity {
     private float yaw;
     private float throttle;
 
+    public static final int DURACAO_PADRAO_EM_DECISEGUNDOS = 10;
+    public static final int INTERVALO_DE_ENVIO_PADRAO = 10;
+    public static final int VALOR_PADRAO = 5;
+    public int rollPitchControlMode;
+
+
     private BroadcastReceiver broadcastConexaoDrone = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -88,40 +99,55 @@ public class ControleActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if(intent.getExtras().getString("comando")!=null) {
                 String comando = intent.getExtras().getString("comando");
-                int intensidade;
-                if(comando.contains("!")) {
-                    String strIntensidade = comando.split("!")[1];
-                     intensidade = Integer.valueOf(strIntensidade);
-                    comando = comando.split("!")[0];
+
+
+                Integer valorExplicito = VALOR_PADRAO; //valor padrao = 5
+                String acao;
+                Integer duracaoEmDecisegundos = DURACAO_PADRAO_EM_DECISEGUNDOS; //tempo padrao = 1s
+
+                //quando vem [valorExplicito][acao][duracao]
+                if(comando.matches("[0-9]{1,2}[a-z]+[0-9]")) {
+                    valorExplicito = Integer.valueOf(comando.split("[a-z]+")[0]);
+                    acao = comando.replaceAll("[0-9]+", "");
+                    duracaoEmDecisegundos = Integer.valueOf(comando.split("[a-z]+")[1]);
+                //quando vem [valorExplicito][acao]
+                } else if(comando.matches("[0-9][a-z]+")){
+                    valorExplicito = Integer.valueOf(comando.replaceAll("[a-z]+",""));
+                    acao = comando.replaceAll("[0-9]+", "");
+                //quando vem [acao][duracao]
+                } else if(comando.matches("[a-z]+[0-9]")) {
+                    acao = comando.replaceAll("[0-9]", "");
+                    duracaoEmDecisegundos = Integer.valueOf(comando.replaceAll("[a-z]+",""));
+                //quando vem apenas [acao] ou qualquer outra coisa
                 } else {
-                    intensidade = 1;
+                    acao = comando;
                 }
 
-                if (comando.equals("a")) {
-                    recebeComandoNavegacao(R.id.botao_esquerda, intensidade);
-                } else if (comando.equals("d")) {
-                    recebeComandoNavegacao(R.id.botao_direita, intensidade);
-                } else if (comando.equals("w")) {
-                    recebeComandoNavegacao(R.id.botao_frente, intensidade);
-                } else if (comando.equals("s")) {
-                    recebeComandoNavegacao(R.id.botao_tras, intensidade);
-                } else if (comando.equals("t")) {
-                    recebeComandoNavegacao(R.id.botao_takeoff, intensidade);
-                } else if (comando.equals("l")) {
-                    recebeComandoNavegacao(R.id.botao_land, intensidade);
-                } else if (comando.equals("g")) {
-                    recebeComandoNavegacao(R.id.botao_girar, intensidade);
-                } else if (comando.equals("on")) {
-                    recebeComandoNavegacao(R.id.botao_on, intensidade);
-                } else if (comando.equals("off")) {
-                    recebeComandoNavegacao(R.id.botao_off, intensidade);
-                } else if (comando.equals("bat")) {
-                    recebeComandoNavegacao(R.id.botao_bateria, intensidade);
+                if (acao.equals("a")) {
+                    recebeComandoNavegacao(R.id.botao_esquerda, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("d")) {
+                    recebeComandoNavegacao(R.id.botao_direita, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("w")) {
+                    recebeComandoNavegacao(R.id.botao_frente, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("s")) {
+                    recebeComandoNavegacao(R.id.botao_tras, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("t")) {
+                    recebeComandoNavegacao(R.id.botao_takeoff, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("l")) {
+                    recebeComandoNavegacao(R.id.botao_land, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("g")) {
+                    recebeComandoNavegacao(R.id.botao_girar, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("on")) {
+                    recebeComandoNavegacao(R.id.botao_on, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("off")) {
+                    recebeComandoNavegacao(R.id.botao_off, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("bat")) {
+                    recebeComandoNavegacao(R.id.botao_bateria, duracaoEmDecisegundos, valorExplicito);
                 } else {
                     Toast.makeText(getApplicationContext(), comando, Toast.LENGTH_SHORT).show();
                     //Registra log do comando recebido na TextView da tela
                     TextView logView = findViewById(R.id.logComandos);
-                    registraLog(logView, comando);
+                    registraLog(logView, acao);
                 }
             }
         }
@@ -188,21 +214,135 @@ public class ControleActivity extends AppCompatActivity {
         findViewById(R.id.botao_bateria).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recebeComandoNavegacao(R.id.botao_bateria, null);
+                recebeComandoNavegacao(R.id.botao_bateria, 1, 1);
             }
         });
 
         findViewById(R.id.botao_on).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recebeComandoNavegacao(R.id.botao_on, null);
+                recebeComandoNavegacao(R.id.botao_on, 1, 1);
             }
         });
 
         findViewById(R.id.botao_off).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recebeComandoNavegacao(R.id.botao_off, null);
+                recebeComandoNavegacao(R.id.botao_off, 1, 1);
+            }
+        });
+
+        findViewById(R.id.botao_takeoff).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_takeoff, 1, 1);
+            }
+        });
+
+        findViewById(R.id.botao_land).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_land, 3, 1);
+            }
+        });
+
+        findViewById(R.id.botao_girar).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_girar, 3, 1);
+            }
+        });
+
+        findViewById(R.id.botao_frente).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_frente, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+
+        findViewById(R.id.botao_tras).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_tras, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+
+        findViewById(R.id.botao_esquerda).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_esquerda, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+
+        findViewById(R.id.botao_direita).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_direita, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+
+        findViewById(R.id.botao_centro).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_centro, DURACAO_PADRAO_EM_DECISEGUNDOS, 0);
+            }
+        });
+
+        Switch virtualStickSwitch = ((Switch) findViewById(R.id.virtualStick));
+        virtualStickSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isFlightControllerAvailable()) {
+                    if (isChecked) {
+                        toggleVirtualStick(true,"VirtualStick ativado!");
+                    } else {
+                        toggleVirtualStick(false, "VirtualStick desativado!");
+                    }
+                } else {
+                    showToast("O drone não está conectado.");
+                    ((Switch) findViewById(R.id.virtualStick)).setChecked(false);
+                }
+            }
+        });
+
+        Spinner rollPitchModeSelect = ((Spinner) findViewById(R.id.rollPitchModeSelect));
+        rollPitchModeSelect.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
+                String labelRollPitchControlMode;
+                labelRollPitchControlMode = (String) ((Spinner) findViewById(R.id.rollPitchModeSelect)).getSelectedItem();
+                if(isFlightControllerAvailable()){
+                    if(labelRollPitchControlMode.equals("ANGLE")){
+                        getAircraftInstance().getFlightController().setRollPitchControlMode(RollPitchControlMode.ANGLE);
+                    } else {
+                        getAircraftInstance().getFlightController().setRollPitchControlMode(RollPitchControlMode.VELOCITY);
+                    }
+                    showToast("Modo de vôo configurado no drone!");
+                    getAircraftInstance().getFlightController().setRollPitchCoordinateSystem(FlightCoordinateSystem.BODY);
+                    atualizarViewRollPitchMode();
+                } else {
+                    showToast("Drone não está conectado!");
+                }
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                atualizarViewRollPitchMode();
+            }
+        });
+    }
+
+    private void toggleVirtualStick(boolean b, String s) {
+        getAircraftInstance().getFlightController().setVirtualStickModeEnabled(b, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if (djiError == null) {
+                    showToast(s);
+                    ((Switch)findViewById(R.id.virtualStick)).setChecked(b);
+                } else {
+                    showToast(djiError.getErrorCode() + " - " + djiError.getDescription());
+                }
             }
         });
     }
@@ -223,20 +363,20 @@ public class ControleActivity extends AppCompatActivity {
     }
 
     //adiciona log do comando à TextView da tela, para consulta.
-    private void registraLog(TextView logView, int direcao, Integer intensidade) {
+    private void registraLog(TextView logView, int direcao, Integer duracaoEmDecisegundos, Integer valorExplicito) {
         String textoDirecao;
         switch (direcao){
             case R.id.botao_direita:
-                textoDirecao = "direita " + intensidade;
+                textoDirecao =  valorExplicito + " para direita por " + duracaoEmDecisegundos*100 + "ms";
                 break;
             case R.id.botao_esquerda:
-                textoDirecao = "esquerda "  + intensidade;
+                textoDirecao = valorExplicito + " para esquerda por " + duracaoEmDecisegundos*100 + "ms";
                 break;
             case R.id.botao_frente:
-                textoDirecao = "para frente "  + intensidade;
+                textoDirecao = valorExplicito + " para frente por " + duracaoEmDecisegundos*100 + "ms";
                 break;
             case R.id.botao_tras:
-                textoDirecao = "para trás "  + intensidade;
+                textoDirecao = valorExplicito + " para trás  por " + duracaoEmDecisegundos*100 + "ms";
                 break;
             case R.id.botao_centro:
                 textoDirecao = "pare!";
@@ -245,7 +385,7 @@ public class ControleActivity extends AppCompatActivity {
                 textoDirecao = "levantar vôo";
                 break;
             case R.id.botao_girar:
-                textoDirecao = "girar "  + intensidade;
+                textoDirecao = valorExplicito + " girar por " + duracaoEmDecisegundos*100 + "ms";
                 break;
             case R.id.botao_land:
                 textoDirecao = "pousar";
@@ -277,7 +417,7 @@ public class ControleActivity extends AppCompatActivity {
         ((ScrollView) findViewById(R.id.scrollLog)).fullScroll(View.FOCUS_DOWN);
     }
 
-    public void recebeComandoNavegacao(int direcao, Integer intensidade) {
+    public void recebeComandoNavegacao(int direcao, Integer duracaoEmDecisegundos, Integer valorExplicito) {
         //Executa ação/comando
         executaComando(direcao);
         this.ultimoComando = direcao;
@@ -285,22 +425,19 @@ public class ControleActivity extends AppCompatActivity {
 
         //Registra log do comando recebido na TextView da tela
         TextView logView = findViewById(R.id.logComandos);
-        registraLog(logView, direcao, intensidade);
+        registraLog(logView, direcao, duracaoEmDecisegundos, valorExplicito);
 
-        //Cria thread para voltar ao estado parado após o intervalo de tempo definido, se
-        //o comando for diferente do estado inicial
-        if(direcao!=R.id.botao_centro) {
-            handler.postDelayed(new Runnable() {
-                public void run() {
-                    retornaEstadoParado();
-                }
-            }, tempoPadraoComando);
-        }
+        //Cria thread para voltar ao estado parado após o intervalo de tempo definido
+        handler.postDelayed(new Runnable() {
+            public void run() {
+                retornaEstadoParado();
+            }
+        }, tempoPadraoComando);
 
-        enviaComandoParaDrone(direcao, intensidade);
+        enviaComandoParaDrone(direcao, duracaoEmDecisegundos, valorExplicito);
     }
 
-    public void enviaComandoParaDrone(int direcao, Integer intensidade){
+    public void enviaComandoParaDrone(int direcao, Integer duracaoEmDecisegundos, Integer valorExplicito){
         //Coordenadas X e Y do controle virtual anaĺogico esquerdo (girar, subir/descer - eixo Z )
         float controleEsquerdo_pX = 0;
         float controleEsquerdo_pY = 0;
@@ -311,16 +448,16 @@ public class ControleActivity extends AppCompatActivity {
 
         switch (direcao) {
             case R.id.botao_direita:
-                controleDireito_pX = intensidade;
+                controleDireito_pX = valorExplicito;
                 break;
             case R.id.botao_esquerda:
-                controleDireito_pX = -1*intensidade;
+                controleDireito_pX = -1*valorExplicito;
                 break;
             case R.id.botao_frente:
-                controleDireito_pY = intensidade;
+                controleDireito_pY = -1*valorExplicito;
                 break;
             case R.id.botao_tras:
-                controleDireito_pY = -1*intensidade;
+                controleDireito_pY = valorExplicito;
                 break;
             case R.id.botao_centro:
                 controleEsquerdo_pX = 0;
@@ -335,7 +472,7 @@ public class ControleActivity extends AppCompatActivity {
                 return;
             case R.id.botao_girar:
                 //único giro implementado é para esquerda
-                controleEsquerdo_pX = -1*intensidade;
+                controleEsquerdo_pX = -1*valorExplicito;
                 break;
             case R.id.botao_land:
                 sendLanding = new SendLanding();
@@ -364,42 +501,49 @@ public class ControleActivity extends AppCompatActivity {
                 controleDireito_pY = 0;
         }
 
-        //TODO - entender o impacto destes valores na prática
-        float verticalJoyControlMaxSpeed = 2;
-        float yawJoyControlMaxSpeed = 3;
-
-        float pitchJoyControlMaxSpeed = 10;
-        float rollJoyControlMaxSpeed = 10;
-
         //flag setada como true por padrão, fazendo com que
-        // pitch: represente posição do eixo X do virtual stick
-        // roll: represente posição do eixo Y do virtual stick
+        // pitch (passo, frente/trás): represente posição do eixo X do drone (eixo Y do virtual stick direito)
+        // roll (rolar lateralmente): represente posição do eixo Y do drone (eixo X do virtual stick direito)
         if (horizontalCoordinateFlag) {
             if (rollPitchControlModeFlag) {
-                pitch = (float) (pitchJoyControlMaxSpeed * controleDireito_pX);
-                roll = (float) (rollJoyControlMaxSpeed * controleDireito_pY);
+                pitch = (float) (controleDireito_pY);
+                roll = (float) (controleDireito_pX);
             } else {
-                pitch = -(float) (pitchJoyControlMaxSpeed * controleDireito_pY);
-                roll = (float) (rollJoyControlMaxSpeed * controleDireito_pX);
+                pitch = -(float) (controleDireito_pX);
+                roll = (float) (controleDireito_pY);
             }
         }
 
-        //yaw representa o giro do drone, tem dois modos:
+        //yaw (guinada/giro) representa o giro do drone, tem dois modos:
         // modo velocidade angular, em que o valor passado é a quantidade de graus por segundo,
         // modo ângulo, em que o valor passado é o ângulo para girar.
-        yaw = yawJoyControlMaxSpeed * controleEsquerdo_pX;
+        yaw = controleEsquerdo_pX;
 
         //throtle representa o movimento vertical (eixo Z), tem dois modos:
         // modo posição: valor que representa a altitude em relação à posição de decolagem,
         // modo velocidade: valores positivos representam ascenção, negativos descida.
-        throttle = verticalJoyControlMaxSpeed * controleEsquerdo_pY;
+        throttle = controleEsquerdo_pY;
 
         //Aqui é criada a classe que vai ser agendada para executar e enviar uma instância de
         // FlightControlData com os dados de navegação pitch, roll, yaw e throttle atribuídos acima.
 
-        sendVirtualStickDataTask = new SendVirtualStickDataTask();
-        sendVirtualStickDataTimer = new Timer();
-        sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, 100,200);
+        if (isFlightControllerAvailable()) {
+            toggleVirtualStick(true, "VirtualStick ativado");
+            sendVirtualStickDataTask = new SendVirtualStickDataTask();
+            sendVirtualStickDataTimer = new Timer();
+            sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, 100, 100); //100ms permite 10 vezes/s = 10Hz
+            showToast("Comando de movimento enviado continuamente a uma frequência de 10Hz.");
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    sendVirtualStickDataTimer.cancel();
+                    toggleVirtualStick(false, "VirtualStick desativado!");
+                    showToast("Comando de movimento (10Hz) finalizado.");
+                }
+            }, duracaoEmDecisegundos*100);
+        } else {
+            showToast("Drone não está conectado!");
+        }
     }
 
     private class SendVirtualStickDataTask extends TimerTask {
@@ -420,13 +564,9 @@ public class ControleActivity extends AppCompatActivity {
                                         public void onResult(DJIError djiError) {
                                             if(djiError!=null) {
                                                 showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
-                                            } else {
-                                                showToast("Comando de movimento enviado para drone com Sucesso! Observe se ele executou.");
                                             }
                                         }
                                     });
-                } else {
-                    showToast("Drone não está conectado!!!");
                 }
 
                 registraLogSDK("", flightControlData);
@@ -570,7 +710,7 @@ public class ControleActivity extends AppCompatActivity {
         handler.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getApplicationContext(), toastMsg, Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), toastMsg, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -711,21 +851,26 @@ public class ControleActivity extends AppCompatActivity {
         if(serial != null) {
             ((TextView) findViewById(R.id.serialDrone)).setText(serialNumber);
             ((TextView) findViewById(R.id.serialDrone)).setTextColor(getResources().getColor(R.color.green));
-            String rowPitchControlMode;
-            if(isFlightControllerAvailable()){
-                if(getAircraftInstance().getFlightController().getRollPitchControlMode().value()==RollPitchControlMode.ANGLE.value()){
-                    rowPitchControlMode = "ANGLE";
-                } else {
-                    rowPitchControlMode = "VELOCITY";
-                };
-                ((TextView) findViewById(R.id.rollPitchControlMode)).setText(
-                        ((TextView) findViewById(R.id.rollPitchControlMode)).getText() + rowPitchControlMode
-                );
-            }
         } else {
             ((TextView) findViewById(R.id.serialDrone)).setText("Desconectado!");
             ((TextView) findViewById(R.id.serialDrone)).setTextColor(getResources().getColor(R.color.red));
         }
+        atualizarViewRollPitchMode();
+    }
+
+    public void atualizarViewRollPitchMode() {
+        String rowPitchControlMode;
+        if(isFlightControllerAvailable()){
+            if(getAircraftInstance().getFlightController().getRollPitchControlMode().value()== RollPitchControlMode.ANGLE.value()){
+                rowPitchControlMode = "ANGLE";
+            } else {
+                rowPitchControlMode = "VELOCITY";
+            };
+        } else {
+            rowPitchControlMode = "";
+        }
+        ((TextView) findViewById(R.id.rollPitchControlMode)).setText(
+                ((TextView) findViewById(R.id.rollPitchControlMode)).getText() + rowPitchControlMode);
     }
 
 
