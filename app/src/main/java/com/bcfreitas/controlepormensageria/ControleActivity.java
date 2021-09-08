@@ -143,6 +143,10 @@ public class ControleActivity extends AppCompatActivity {
                     recebeComandoNavegacao(R.id.botao_off, duracaoEmDecisegundos, valorExplicito);
                 } else if (acao.equals("bat")) {
                     recebeComandoNavegacao(R.id.botao_bateria, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("up")) {
+                    recebeComandoNavegacao(R.id.botao_up, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("down")) {
+                    recebeComandoNavegacao(R.id.botao_down, duracaoEmDecisegundos, valorExplicito);
                 } else {
                     Toast.makeText(getApplicationContext(), comando, Toast.LENGTH_SHORT).show();
                     //Registra log do comando recebido na TextView da tela
@@ -193,6 +197,10 @@ public class ControleActivity extends AppCompatActivity {
         estados.add(R.id.botao_on);
         estados.add(R.id.botao_off);
         estados.add(R.id.botao_bateria);
+        estados.add(R.id.botao_up);
+        estados.add(R.id.botao_up2);
+        estados.add(R.id.botao_down);
+        estados.add(R.id.botao_down2);
 
         mensageriaThread = MensageriaThread.getInstance();
         mensageriaThread.setBroadcaster(getApplicationContext());
@@ -284,7 +292,31 @@ public class ControleActivity extends AppCompatActivity {
         findViewById(R.id.botao_centro).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recebeComandoNavegacao(R.id.botao_centro, DURACAO_PADRAO_EM_DECISEGUNDOS, 0);
+                recebeComandoNavegacao(R.id.botao_centro, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+        findViewById(R.id.botao_up).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_up, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+        findViewById(R.id.botao_up2).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_up2, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+        findViewById(R.id.botao_down).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_down, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+        findViewById(R.id.botao_down2).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_down2, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
             }
         });
 
@@ -331,7 +363,38 @@ public class ControleActivity extends AppCompatActivity {
                 atualizarViewRollPitchMode();
             }
         });
+
+        Spinner flightCoordinateModeSpinner = ((Spinner) findViewById(R.id.flightCoordinateSystem));
+        flightCoordinateModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
+                if(isFlightControllerAvailable()){
+                    configuraFlightCoordinateSystem();
+                    showToast("Modo de coordenada configurado no drone!");
+                } else {
+                    showToast("Drone não está conectado!");
+                }
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                atualizarViewRollPitchMode();
+            }
+        });
     }
+
+    public void configuraFlightCoordinateSystem(){
+        String labelFlightCooordinateModeSpinner;
+        labelFlightCooordinateModeSpinner = (String) ((Spinner) findViewById(R.id.flightCoordinateSystem)).getSelectedItem();
+        if(isFlightControllerAvailable()) {
+            if (labelFlightCooordinateModeSpinner.equals("GROUND")) {
+                getAircraftInstance().getFlightController().setRollPitchCoordinateSystem(FlightCoordinateSystem.GROUND);
+            } else {
+                getAircraftInstance().getFlightController().setRollPitchCoordinateSystem(FlightCoordinateSystem.BODY);
+            }
+        }
+}
 
     private void toggleVirtualStick(boolean b, String s) {
         getAircraftInstance().getFlightController().setVirtualStickModeEnabled(b, new CommonCallbacks.CompletionCallback() {
@@ -399,6 +462,14 @@ public class ControleActivity extends AppCompatActivity {
             case R.id.botao_bateria:
                 textoDirecao = "checar bateria";
                 break;
+            case R.id.botao_up:
+            case R.id.botao_up2:
+                textoDirecao = valorExplicito + " para cima por " + duracaoEmDecisegundos*100 + "ms"; ;
+                break;
+            case R.id.botao_down:
+            case R.id.botao_down2:
+                textoDirecao = valorExplicito + " para baixo por " + duracaoEmDecisegundos*100 + "ms"; ;
+                break;
             default:
                 textoDirecao = "";
         }
@@ -458,6 +529,14 @@ public class ControleActivity extends AppCompatActivity {
                 break;
             case R.id.botao_tras:
                 controleDireito_pY = valorExplicito;
+                break;
+            case R.id.botao_up:
+            case R.id.botao_up2:
+                controleEsquerdo_pY = 1f; //valorExplicito;
+                break;
+            case R.id.botao_down:
+            case R.id.botao_down2:
+                controleEsquerdo_pY = -1f; //-1*valorExplicito;
                 break;
             case R.id.botao_centro:
                 controleEsquerdo_pX = 0;
@@ -524,21 +603,20 @@ public class ControleActivity extends AppCompatActivity {
         // modo velocidade: valores positivos representam ascenção, negativos descida.
         throttle = controleEsquerdo_pY;
 
+        //reforça modo de coordenada que deve ser usado para o comando.
+        configuraFlightCoordinateSystem();
+
         //Aqui é criada a classe que vai ser agendada para executar e enviar uma instância de
         // FlightControlData com os dados de navegação pitch, roll, yaw e throttle atribuídos acima.
-
         if (isFlightControllerAvailable()) {
             toggleVirtualStick(true, "VirtualStick ativado");
             sendVirtualStickDataTask = new SendVirtualStickDataTask();
             sendVirtualStickDataTimer = new Timer();
             sendVirtualStickDataTimer.schedule(sendVirtualStickDataTask, 100, 100); //100ms permite 10 vezes/s = 10Hz
-            showToast("Comando de movimento enviado continuamente a uma frequência de 10Hz.");
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     sendVirtualStickDataTimer.cancel();
-                    toggleVirtualStick(false, "VirtualStick desativado!");
-                    showToast("Comando de movimento (10Hz) finalizado.");
                 }
             }, duracaoEmDecisegundos*100);
         } else {
@@ -871,6 +949,19 @@ public class ControleActivity extends AppCompatActivity {
         }
         ((TextView) findViewById(R.id.rollPitchControlMode)).setText(
                 ((TextView) findViewById(R.id.rollPitchControlMode)).getText() + rowPitchControlMode);
+    }
+
+    public void atualizarViewCoordinateSystemMode() {
+        String flightCoordinateSystem;
+        if(isFlightControllerAvailable()){
+            if(getAircraftInstance().getFlightController().getRollPitchCoordinateSystem().value()== FlightCoordinateSystem.GROUND.value()){
+                flightCoordinateSystem = "BODY";
+            } else {
+                flightCoordinateSystem = "GROUND";
+            };
+        } else {
+            flightCoordinateSystem = "";
+        }
     }
 
 

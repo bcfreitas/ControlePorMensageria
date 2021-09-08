@@ -8,6 +8,66 @@
     android:backgroundTint="@color/black"
     tools:context=".ControleActivity">
 
+    <Button
+        android:id="@+id/botao_down2"
+        android:layout_width="40dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="168dp"
+        android:backgroundTint="@color/purple_500"
+        android:padding="2dp"
+        android:text="D\no\nw\nn"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="11dp"
+        app:layout_constraintStart_toEndOf="@+id/botao_direita"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
+
+    <Button
+        android:id="@+id/botao_up2"
+        android:layout_width="40dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="80dp"
+        android:backgroundTint="@color/purple_500"
+        android:padding="2dp"
+        android:text="U\nP"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="11dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/botao_direita"
+        app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
+
+    <Button
+        android:id="@+id/botao_up"
+        android:layout_width="40dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="80dp"
+        android:backgroundTint="@color/purple_500"
+        android:padding="2dp"
+        android:text="U\np"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="11dp"
+        app:layout_constraintEnd_toStartOf="@+id/botao_esquerda"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
+
+    <Button
+        android:id="@+id/botao_down"
+        android:layout_width="40dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="168dp"
+        android:backgroundTint="@color/purple_500"
+        android:padding="2dp"
+        android:text="D\no\nw\nn"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="11dp"
+        app:layout_constraintEnd_toStartOf="@+id/botao_esquerda"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="170dp"
         android:layout_height="70dp"
@@ -53,7 +113,7 @@
     <Spinner
         android:id="@+id/rollPitchModeSelect"
         android:layout_width="180dp"
-        android:layout_height="47dp"
+        android:layout_height="40dp"
         android:background="@android:drawable/btn_dropdown"
         android:entries="@array/rollpitchmodes"
         android:spinnerMode="dropdown"
@@ -61,6 +121,16 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
         />
+
+    <Spinner
+        android:id="@+id/flightCoordinateSystem"
+        android:layout_width="180dp"
+        android:layout_height="40dp"
+        android:background="@android:drawable/btn_dropdown"
+        android:entries="@array/coordinateSystem"
+        android:spinnerMode="dropdown"
+        app:layout_constraintBottom_toTopOf="@+id/labelLogComandos"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/botao_bateria"
@@ -127,10 +197,11 @@
         app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/boxSerial"
         android:layout_width="200dp"
-        android:layout_height="70dp"
-        android:layout_marginTop="6dp"
+        android:layout_height="60dp"
         android:layout_marginLeft="6dp"
+        android:layout_marginTop="6dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -165,8 +236,7 @@
             android:textColor="@color/yellow"
             android:textSize="18dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/labelSerial"
-            />
+            app:layout_constraintTop_toBottomOf="@id/labelSerial" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -297,9 +367,8 @@
 
     <Button
         android:id="@+id/botao_esquerda"
-        android:layout_width="120dp"
+        android:layout_width="80dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
         android:backgroundTint="@color/purple_500"
         android:padding="1dp"
         android:text="Esquerda\n(a)"
@@ -308,7 +377,7 @@
         android:textSize="11dp"
         app:layout_constraintEnd_toStartOf="@+id/botao_centro"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/botao_up"
         app:layout_constraintTop_toBottomOf="@+id/botao_frente" />
 
     <Button
@@ -340,7 +409,7 @@
 
     <Button
         android:id="@+id/botao_direita"
-        android:layout_width="120dp"
+        android:layout_width="80dp"
         android:layout_height="wrap_content"
         android:backgroundTint="@color/purple_500"
         android:padding="1dp"
@@ -348,7 +417,7 @@
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="11dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/botao_up2"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/botao_centro"
         app:layout_constraintTop_toBottomOf="@+id/botao_frente" />
@@ -364,13 +433,18 @@
         android:id="@+id/virtualStick"
         android:layout_width="139dp"
         android:layout_height="26dp"
-        android:layout_marginBottom="10dp"
         android:layout_marginStart="10dp"
-        android:background="@color/white"
+        android:layout_marginBottom="10dp"
+        android:background="@color/black"
         android:showText="true"
         android:text=" VirtualStick"
+        android:textAlignment="center"
+        android:textColor="@color/white"
         android:textSize="12sp"
-        app:layout_constraintBottom_toTopOf="@+id/labelLogComandos"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:thumbTint="@color/purple_500"
+        android:thumbTintMode="src_over"
+        android:track="@color/gray"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/boxSerial" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
