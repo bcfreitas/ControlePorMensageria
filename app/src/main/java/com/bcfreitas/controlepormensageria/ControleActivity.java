@@ -350,8 +350,6 @@ public class ControleActivity extends AppCompatActivity {
                         getAircraftInstance().getFlightController().setRollPitchControlMode(RollPitchControlMode.VELOCITY);
                     }
                     showToast("Modo de vôo configurado no drone!");
-                    getAircraftInstance().getFlightController().setRollPitchCoordinateSystem(FlightCoordinateSystem.BODY);
-                    atualizarViewRollPitchMode();
                 } else {
                     showToast("Drone não está conectado!");
                 }
@@ -360,7 +358,6 @@ public class ControleActivity extends AppCompatActivity {
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                atualizarViewRollPitchMode();
             }
         });
 
@@ -379,7 +376,6 @@ public class ControleActivity extends AppCompatActivity {
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                atualizarViewRollPitchMode();
             }
         });
     }
@@ -390,8 +386,10 @@ public class ControleActivity extends AppCompatActivity {
         if(isFlightControllerAvailable()) {
             if (labelFlightCooordinateModeSpinner.equals("GROUND")) {
                 getAircraftInstance().getFlightController().setRollPitchCoordinateSystem(FlightCoordinateSystem.GROUND);
+                Log.println(Log.INFO, "testesBruno", "setou flight coordinate GROUND");
             } else {
                 getAircraftInstance().getFlightController().setRollPitchCoordinateSystem(FlightCoordinateSystem.BODY);
+                Log.println(Log.INFO, "testesBruno", "setou flight coordinate BODY");
             }
         }
 }
@@ -937,18 +935,18 @@ public class ControleActivity extends AppCompatActivity {
     }
 
     public void atualizarViewRollPitchMode() {
-        String rowPitchControlMode;
+        int rowPitchControlMode;
         if(isFlightControllerAvailable()){
             if(getAircraftInstance().getFlightController().getRollPitchControlMode().value()== RollPitchControlMode.ANGLE.value()){
-                rowPitchControlMode = "ANGLE";
+                rowPitchControlMode = 1;
             } else {
-                rowPitchControlMode = "VELOCITY";
+                rowPitchControlMode = 2;
             };
         } else {
-            rowPitchControlMode = "";
+            rowPitchControlMode = 1;
         }
-        ((TextView) findViewById(R.id.rollPitchControlMode)).setText(
-                ((TextView) findViewById(R.id.rollPitchControlMode)).getText() + rowPitchControlMode);
+
+        ((Spinner) findViewById(R.id.rollPitchModeSelect)).setSelection(rowPitchControlMode, true);
     }
 
     public void atualizarViewCoordinateSystemMode() {

@@ -8,19 +8,51 @@
     android:backgroundTint="@color/black"
     tools:context=".ControleActivity">
 
+    <Spinner
+        android:id="@+id/rollPitchModeSelect3"
+        android:layout_width="180dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="232dp"
+        android:layout_marginBottom="60dp"
+        android:background="@android:drawable/btn_dropdown"
+        android:entries="@array/rollpitchmodes"
+        android:spinnerMode="dropdown"
+        app:layout_constraintBottom_toTopOf="@+id/labelLogComandos"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/label_rowPitchControlMode3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="RowPitchControlMode"
+        android:textColor="@color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:layout_editor_absoluteY="79dp" />
+
+    <TextView
+        android:id="@+id/label_rowPitchControlMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="RowPitchControlMode"
+        android:textColor="@color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:layout_editor_absoluteY="139dp" />
+
     <Button
         android:id="@+id/botao_down2"
         android:layout_width="40dp"
         android:layout_height="80dp"
         android:layout_marginTop="168dp"
+        android:layout_marginEnd="132dp"
         android:backgroundTint="@color/purple_500"
         android:padding="2dp"
         android:text="D\no\nw\nn"
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="11dp"
-        app:layout_constraintStart_toEndOf="@+id/botao_direita"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/botao_direita"
         app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
 
     <Button
@@ -123,6 +155,17 @@
         />
 
     <Spinner
+        android:id="@+id/rollPitchModeSelect2"
+        android:layout_width="180dp"
+        android:layout_height="40dp"
+        android:layout_marginBottom="64dp"
+        android:background="@android:drawable/btn_dropdown"
+        android:entries="@array/rollpitchmodes"
+        android:spinnerMode="dropdown"
+        app:layout_constraintBottom_toTopOf="@+id/labelLogComandos"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Spinner
         android:id="@+id/flightCoordinateSystem"
         android:layout_width="180dp"
         android:layout_height="40dp"
@@ -199,7 +242,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/boxSerial"
         android:layout_width="200dp"
-        android:layout_height="60dp"
+        android:layout_height="48dp"
         android:layout_marginLeft="6dp"
         android:layout_marginTop="6dp"
         app:layout_constraintStart_toStartOf="parent"
@@ -212,18 +255,6 @@
             android:layout_marginLeft="6dp"
             android:text="Número serial do drone:"
             android:textColor="@color/white"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/rollPitchControlMode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:layout_marginTop="44dp"
-            android:text="RollPitchControlMode:"
-            android:textColor="@color/white"
-            android:textSize="10sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -244,10 +275,9 @@
         android:id="@+id/labelLogComandos"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="140dp"
+        android:layout_marginTop="200dp"
         android:background="@color/white"
         android:backgroundTint="@color/teal_200"
-        android:gravity="start"
         android:text="Dados recebidos por mensageria:"
         android:textAlignment="textStart"
         android:textColor="@color/black"
@@ -256,7 +286,7 @@
     <ScrollView
         android:id="@+id/scrollLog"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="40dp"
         android:layout_marginTop="1dp"
         android:background="@color/white"
         android:fadeScrollbars="false"
@@ -266,7 +296,7 @@
         android:scrollbarSize="4dp"
         android:verticalScrollbarPosition="right"
         app:layout_constraintTop_toBottomOf="@+id/labelLogComandos"
-        tools:layout_editor_absoluteX="196dp">
+        >
 
         <TextView
             android:id="@+id/logComandos"
@@ -296,7 +326,7 @@
     <ScrollView
         android:id="@+id/scrollLogSDK"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="40dp"
         android:background="@color/white"
         android:fadeScrollbars="false"
         android:fillViewport="true"
@@ -305,7 +335,7 @@
         android:scrollbarSize="4dp"
         android:verticalScrollbarPosition="right"
         app:layout_constraintTop_toBottomOf="@id/labelLogSDK"
-        tools:layout_editor_absoluteX="196dp">
+        >
 
         <TextView
             android:id="@+id/logComandosSDK"
@@ -429,12 +459,20 @@
         app:constraint_referenced_ids="botao_land,botao_girar,botao_takeoff,botao_bateria"
         app:flow_horizontalAlign="center" />
 
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="FlightCoordinateMode"
+        android:textColor="@color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout_editor_absoluteY="139dp" />
+
     <Switch
         android:id="@+id/virtualStick"
         android:layout_width="139dp"
         android:layout_height="26dp"
-        android:layout_marginStart="10dp"
-        android:layout_marginBottom="10dp"
+        android:layout_marginTop="11dp"
         android:background="@color/black"
         android:showText="true"
         android:text=" VirtualStick"
