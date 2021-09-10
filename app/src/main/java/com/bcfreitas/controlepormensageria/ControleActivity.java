@@ -31,9 +31,11 @@ import java.util.TimerTask;
 
 import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
+import dji.common.flightcontroller.FlightOrientationMode;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
 import dji.common.flightcontroller.virtualstick.FlightCoordinateSystem;
 import dji.common.flightcontroller.virtualstick.RollPitchControlMode;
+import dji.common.flightcontroller.virtualstick.YawControlMode;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.products.Aircraft;
@@ -74,7 +76,7 @@ public class ControleActivity extends AppCompatActivity {
 
     public static final int DURACAO_PADRAO_EM_DECISEGUNDOS = 10;
     public static final int INTERVALO_DE_ENVIO_PADRAO = 10;
-    public static final int VALOR_PADRAO = 5;
+    public int VALOR_PADRAO = 5;
     public int rollPitchControlMode;
 
 
@@ -346,12 +348,17 @@ public class ControleActivity extends AppCompatActivity {
                 if(isFlightControllerAvailable()){
                     if(labelRollPitchControlMode.equals("ANGLE")){
                         getAircraftInstance().getFlightController().setRollPitchControlMode(RollPitchControlMode.ANGLE);
+                        VALOR_PADRAO = 5;
                     } else {
                         getAircraftInstance().getFlightController().setRollPitchControlMode(RollPitchControlMode.VELOCITY);
+                        //Altera o valor padrão para 1 por segurança, pois o valor padrão de 5 quando usa velocidade se torna 5m/s,
+                        //e como o tempo padrão é 1s, equivale a um movimento de 5m... inviabilizando testes internos.
+                        VALOR_PADRAO = 1;
                     }
                     showToast("Modo de vôo configurado no drone!");
                 } else {
                     showToast("Drone não está conectado!");
+                    ((Spinner) findViewById(R.id.rollPitchModeSelect)).setSelection(0, true);
                 }
 
             }
@@ -361,7 +368,7 @@ public class ControleActivity extends AppCompatActivity {
             }
         });
 
-        Spinner flightCoordinateModeSpinner = ((Spinner) findViewById(R.id.flightCoordinateSystem));
+        Spinner flightCoordinateModeSpinner = ((Spinner) findViewById(R.id.flightCoordinateSelect));
         flightCoordinateModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
@@ -370,6 +377,46 @@ public class ControleActivity extends AppCompatActivity {
                     showToast("Modo de coordenada configurado no drone!");
                 } else {
                     showToast("Drone não está conectado!");
+                    ((Spinner) findViewById(R.id.flightCoordinateSelect)).setSelection(0, true);
+
+                }
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+
+        Spinner yawControlModeSpinner = ((Spinner) findViewById(R.id.yawControlModeSelect));
+        yawControlModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
+                if(isFlightControllerAvailable()){
+                    configuraYawControlMode();
+                    showToast("yawControlMode configurado no drone!");
+                } else {
+                    showToast("Drone não está conectado!");
+                    ((Spinner) findViewById(R.id.yawControlModeSelect)).setSelection(0, true);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+
+        Spinner flightOrientationModeSpinner = ((Spinner) findViewById(R.id.flightOrientationModeSelect));
+        flightOrientationModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
+                if(isFlightControllerAvailable()){
+                    configuraFlightOrientationMode();
+                    showToast("flightOrientationMode configurado no drone!");
+                } else {
+                    showToast("Drone não está conectado!");
+                    ((Spinner) findViewById(R.id.flightOrientationModeSelect)).setSelection(0, true);
+
                 }
 
             }
@@ -381,10 +428,10 @@ public class ControleActivity extends AppCompatActivity {
     }
 
     public void configuraFlightCoordinateSystem(){
-        String labelFlightCooordinateModeSpinner;
-        labelFlightCooordinateModeSpinner = (String) ((Spinner) findViewById(R.id.flightCoordinateSystem)).getSelectedItem();
+        String flightCooordinateModeSpinnerValue;
+        flightCooordinateModeSpinnerValue = (String) ((Spinner) findViewById(R.id.flightCoordinateSelect)).getSelectedItem();
         if(isFlightControllerAvailable()) {
-            if (labelFlightCooordinateModeSpinner.equals("GROUND")) {
+            if (flightCooordinateModeSpinnerValue.equals("GROUND")) {
                 getAircraftInstance().getFlightController().setRollPitchCoordinateSystem(FlightCoordinateSystem.GROUND);
                 Log.println(Log.INFO, "testesBruno", "setou flight coordinate GROUND");
             } else {
@@ -392,7 +439,38 @@ public class ControleActivity extends AppCompatActivity {
                 Log.println(Log.INFO, "testesBruno", "setou flight coordinate BODY");
             }
         }
-}
+    }
+
+    public void configuraYawControlMode(){
+        String yawControlModeSpinnerValue;
+        yawControlModeSpinnerValue = (String) ((Spinner) findViewById(R.id.yawControlModeSelect)).getSelectedItem();
+        if(isFlightControllerAvailable()) {
+            if (yawControlModeSpinnerValue.equals("ANGLE")) {
+                getAircraftInstance().getFlightController().setYawControlMode(YawControlMode.ANGLE);
+                Log.println(Log.INFO, "testesBruno", "setou yaw mode ANGLE");
+            } else {
+                getAircraftInstance().getFlightController().setYawControlMode(YawControlMode.ANGULAR_VELOCITY);
+                Log.println(Log.INFO, "testesBruno", "setou yaw mode BODY");
+            }
+        }
+    }
+
+    public void configuraFlightOrientationMode(){
+        String flightOrientationModeValue;
+        flightOrientationModeValue = (String) ((Spinner) findViewById(R.id.flightOrientationModeSelect)).getSelectedItem();
+        if(isFlightControllerAvailable()) {
+            if (flightOrientationModeValue.equals("AIRCRAFT_HEADING")) {
+                getAircraftInstance().getFlightController().getState().setOrientationMode(FlightOrientationMode.AIRCRAFT_HEADING);
+                Log.println(Log.INFO, "testesBruno", "setou orientation mode AIRCRAFT HEADING");
+            } else if (flightOrientationModeValue.equals("COURSE_LOCK")) {
+                getAircraftInstance().getFlightController().getState().setOrientationMode(FlightOrientationMode.COURSE_LOCK);
+                Log.println(Log.INFO, "testesBruno", "setou orientation mode COURSE LOCK");
+            } else {
+                getAircraftInstance().getFlightController().getState().setOrientationMode(FlightOrientationMode.HOME_LOCK);
+                Log.println(Log.INFO, "testesBruno", "setou orientation mode HOME LOCK");
+            }
+        }
+    }
 
     private void toggleVirtualStick(boolean b, String s) {
         getAircraftInstance().getFlightController().setVirtualStickModeEnabled(b, new CommonCallbacks.CompletionCallback() {
@@ -615,6 +693,7 @@ public class ControleActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     sendVirtualStickDataTimer.cancel();
+                    enviarPosicaoDroneParaFiware();
                 }
             }, duracaoEmDecisegundos*100);
         } else {
@@ -932,36 +1011,73 @@ public class ControleActivity extends AppCompatActivity {
             ((TextView) findViewById(R.id.serialDrone)).setTextColor(getResources().getColor(R.color.red));
         }
         atualizarViewRollPitchMode();
+        atualizarViewYawControlMode();
+        atualizarViewCoordinateSystemMode();
+        atualizarViewFlightOrientationMode();
+        enviarPosicaoDroneParaFiware();
     }
 
     public void atualizarViewRollPitchMode() {
-        int rowPitchControlMode;
+        int rollPitchControlMode;
         if(isFlightControllerAvailable()){
             if(getAircraftInstance().getFlightController().getRollPitchControlMode().value()== RollPitchControlMode.ANGLE.value()){
-                rowPitchControlMode = 1;
+                rollPitchControlMode = 1;
             } else {
-                rowPitchControlMode = 2;
+                rollPitchControlMode = 2;
             };
         } else {
-            rowPitchControlMode = 1;
+            rollPitchControlMode = 0;
         }
 
-        ((Spinner) findViewById(R.id.rollPitchModeSelect)).setSelection(rowPitchControlMode, true);
+        ((Spinner) findViewById(R.id.rollPitchModeSelect)).setSelection(rollPitchControlMode, true);
+    }
+
+    public void atualizarViewYawControlMode() {
+        int yawControlMode;
+        if(isFlightControllerAvailable()){
+            if(getAircraftInstance().getFlightController().getYawControlMode().value()== YawControlMode.ANGLE.value()){
+                yawControlMode = 1;
+            } else {
+                yawControlMode = 2;
+            };
+        } else {
+            yawControlMode = 0;
+        }
+
+        ((Spinner) findViewById(R.id.yawControlModeSelect)).setSelection(yawControlMode, true);
     }
 
     public void atualizarViewCoordinateSystemMode() {
-        String flightCoordinateSystem;
+        int flightCoordinateSystem;
         if(isFlightControllerAvailable()){
             if(getAircraftInstance().getFlightController().getRollPitchCoordinateSystem().value()== FlightCoordinateSystem.GROUND.value()){
-                flightCoordinateSystem = "BODY";
+                flightCoordinateSystem = 1;
             } else {
-                flightCoordinateSystem = "GROUND";
+                flightCoordinateSystem = 2;
             };
         } else {
-            flightCoordinateSystem = "";
+            flightCoordinateSystem = 0;
         }
+
+        ((Spinner) findViewById(R.id.flightCoordinateSelect)).setSelection(flightCoordinateSystem, true);
     }
 
+    public void atualizarViewFlightOrientationMode() {
+        int flightOrientationMode;
+        if(isFlightControllerAvailable()){
+            if(getAircraftInstance().getFlightController().getState().getOrientationMode().value()== FlightOrientationMode.AIRCRAFT_HEADING.value()){
+                flightOrientationMode = 1;
+            } else if(getAircraftInstance().getFlightController().getState().getOrientationMode().value()== FlightOrientationMode.COURSE_LOCK.value()) {
+                flightOrientationMode = 2;
+            } else {
+                flightOrientationMode = 3;
+            };
+        } else {
+            flightOrientationMode = 0;
+        }
+
+        ((Spinner) findViewById(R.id.flightOrientationModeSelect)).setSelection(flightOrientationMode, true);
+    }
 
     /**
      * Usado para enviar intent de modificação do texto do serial do drone
@@ -986,10 +1102,32 @@ public class ControleActivity extends AppCompatActivity {
         msg.setData(bundleSample);
         if(mensageriaThread.mHandler != null) {
             mensageriaThread.mHandler.sendMessage(msg);
-            showToast("enviou serial " + serial + "para thread mensageria.");
         } else {
             showToast("handler da thread mensageria nulo");
         }
     }
 
+    public void enviarPosicaoDroneParaFiware(){
+        if(isFlightControllerAvailable()){
+            double latitude = getAircraftInstance().getFlightController().getState().getAircraftLocation().getLatitude();
+            double longitude = getAircraftInstance().getFlightController().getState().getAircraftLocation().getLongitude();
+            double altitude = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude();
+
+            enviarDadosPorMensageria("fiwareServerData", "latitude:"+latitude+";longitude:"+longitude+";altitude:"+altitude);
+        } else {
+            enviarDadosPorMensageria("fiwareServerData", "drone desconectado");
+        }
+    }
+
+    public void enviarDadosPorMensageria(String queueName, String data) {
+        Message msg = new Message();
+        Bundle bundleSample = new Bundle();
+        bundleSample.putString(queueName, data);
+        msg.setData(bundleSample);
+        if(mensageriaThread.mHandler != null) {
+            mensageriaThread.mHandler.sendMessage(msg);
+        } else {
+            showToast("handler da thread mensageria nulo");
+        }
+    }
 }

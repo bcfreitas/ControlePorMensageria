@@ -6,11 +6,24 @@
         <item>controlePorMensageria</item>
     </string-array>
     <string-array name="rollpitchmodes">
+        <item>--</item>
         <item>ANGLE</item>
         <item>VELOCITY</item>
     </string-array>
     <string-array name="coordinateSystem">
+        <item>--</item>
         <item>GROUND</item>
         <item>BODY</item>
+    </string-array>
+    <string-array name="flightOrientationMode">
+        <item>--</item>
+        <item>AIRCRAFT_HEAD</item>
+        <item>COURSE_LOCK</item>
+        <item>HOME_LOCK</item>
+    </string-array>
+    <string-array name="yawControlMode">
+        <item>--</item>
+        <item>ANGLE</item>
+        <item>ANGULAR_VELOCITY</item>
     </string-array>
 </resources>

@@ -38,10 +38,12 @@ class MensageriaThread extends Thread {
     private String serialDrone;
     private String filaParaMensageria;
     private static MensageriaThread mensageriaThreadInstance;
+    public static final String FIWARE_QUEUE = "fiwareQueue";
 
     //canal para transmissão de dados contínua com o servidor rabbitMQ
     Channel channel;
     Channel channelEnvio;
+    Channel channelEnvioFiware;
 
     //fábrica de conexões rabbitMQ
     ConnectionFactory factory;
@@ -49,6 +51,7 @@ class MensageriaThread extends Thread {
     //conexão com sevidor rabbitMQ
     Connection connection;
     Connection connectionEnvio;
+    Connection connectionEnvioFiware;
 
     private MensageriaThread(){
         this.intent = new Intent(ControleActivity.ACTION_MENSAGERIA);
@@ -72,11 +75,14 @@ class MensageriaThread extends Thread {
                 if(this.connection == null){
                     this.connection=factory.newConnection();
                     this.connectionEnvio=factory.newConnection();
+                    this.connectionEnvioFiware=factory.newConnection();
                 };
                 channel = connection.createChannel();
                 channelEnvio = connectionEnvio.createChannel();
+                channelEnvioFiware = connectionEnvioFiware.createChannel();
                 channel.queueDeclare(filaParaMensageria, true, false, false, null);
                 channelEnvio.queueDeclare(filaParaMensageria, true, false, false, null);
+                channelEnvioFiware.queueDeclare(FIWARE_QUEUE, true, false, false, null);
                 Log.println(Log.INFO, "testesBruno", "Conexão e canal AMQP criado com sucesso! Na fila " + filaParaMensageria);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
@@ -104,6 +110,11 @@ class MensageriaThread extends Thread {
                     if(msg.getData().getString("serialDrone")!=null){
                         atualizarSerialDrone(msg.getData().getString("serialDrone"));
                         Log.println(Log.INFO, "testesBruno", msg.getData().getString("serialDrone"));
+                    }
+
+                    if(msg.getData().getString("fiwareServerData")!=null){
+                        enviarDadosParaFiware(msg.getData().getString("fiwareServerData"));
+                        Log.println(Log.INFO, "testesBruno", msg.getData().getString("fiwareServerData"));
                     }
 
                     Log.println(Log.INFO, "testesBruno", "a ThreadMensageria recebeu uma mensagem: " + msg.getData().toString());
@@ -178,6 +189,20 @@ class MensageriaThread extends Thread {
         System.out.println("entrou metodo envia msg rabbit");
         try {
             channelEnvio.basicPublish("", filaParaMensageria, null, message.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Envia dados para servidor Fiware
+     * para coleta por software que está controlando o drone
+     *
+     * @param message mensagem a ser enviada
+     */
+    private void enviarDadosParaFiware(String message){
+        try {
+            channelEnvioFiware.basicPublish("", FIWARE_QUEUE, null, message.getBytes());
         } catch (IOException e) {
             e.printStackTrace();
         }
