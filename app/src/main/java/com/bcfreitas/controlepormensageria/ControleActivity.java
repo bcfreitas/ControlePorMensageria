@@ -593,6 +593,16 @@ public class ControleActivity extends AppCompatActivity {
         float controleDireito_pX = 0;
         float controleDireito_pY = 0;
 
+        //verifica altitude atual e o ângulo de inclinação da face do drone em relação ao norte
+        //para passar como parâmetros e evitar movimentos de giro ou elevação indevidos no caso de outros movimentos.
+        if(isFlightControllerAvailable()){
+            throttle = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude();
+            yaw = getAircraftInstance().getFlightController().getCompass().getHeading();
+        } else {
+            throttle = 0;
+            yaw = 0;
+        }
+
         switch (direcao) {
             case R.id.botao_direita:
                 controleDireito_pX = valorExplicito;
@@ -608,11 +618,21 @@ public class ControleActivity extends AppCompatActivity {
                 break;
             case R.id.botao_up:
             case R.id.botao_up2:
-                controleEsquerdo_pY = 1f; //valorExplicito;
+                controleEsquerdo_pY = 1; //valorExplicito;
+                if(isFlightControllerAvailable()){
+                    float altitudeAtual = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude();
+                    controleEsquerdo_pY = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude()+1;
+                }
                 break;
             case R.id.botao_down:
             case R.id.botao_down2:
-                controleEsquerdo_pY = -1f; //-1*valorExplicito;
+                controleEsquerdo_pY = 0; //-1*valorExplicito;
+                if(isFlightControllerAvailable()){
+                    float altitudeAtual = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude();
+                    if(altitudeAtual >=1) {
+                        controleEsquerdo_pY = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude()-1;
+                    }
+                }
                 break;
             case R.id.botao_centro:
                 controleEsquerdo_pX = 0;
@@ -627,7 +647,7 @@ public class ControleActivity extends AppCompatActivity {
                 return;
             case R.id.botao_girar:
                 //único giro implementado é para esquerda
-                controleEsquerdo_pX = -1*valorExplicito;
+                yaw = yaw -1*valorExplicito;
                 break;
             case R.id.botao_land:
                 sendLanding = new SendLanding();
@@ -672,12 +692,16 @@ public class ControleActivity extends AppCompatActivity {
         //yaw (guinada/giro) representa o giro do drone, tem dois modos:
         // modo velocidade angular, em que o valor passado é a quantidade de graus por segundo,
         // modo ângulo, em que o valor passado é o ângulo para girar.
-        yaw = controleEsquerdo_pX;
+        if(yaw==0){
+            yaw = controleEsquerdo_pX;
+        }
 
         //throtle representa o movimento vertical (eixo Z), tem dois modos:
         // modo posição: valor que representa a altitude em relação à posição de decolagem,
         // modo velocidade: valores positivos representam ascenção, negativos descida.
-        throttle = controleEsquerdo_pY;
+        if(throttle==0){
+            throttle = controleEsquerdo_pY;
+        }
 
         //reforça modo de coordenada que deve ser usado para o comando.
         configuraFlightCoordinateSystem();
@@ -829,7 +853,18 @@ public class ControleActivity extends AppCompatActivity {
                                     if(djiError!=null) {
                                         showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
                                     } else {
-                                        showToast("sendLand enviado para drone com Sucesso! Deve ter pousado.");
+                                        showToast("sendLand enviado para drone com Sucesso! Deve ter iniciado pouso.");
+
+                                        SendConfirmLanding sendConfirmLanding = new SendConfirmLanding();
+                                        sendVirtualStickDataTimer = new Timer();
+                                        handler.postDelayed(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                sendVirtualStickDataTimer.schedule(sendConfirmLanding, new Date());
+                                                enviarPosicaoDroneParaFiware();
+                                            }
+                                        }, 1000);
+
                                     }
                                 }
                             });
@@ -842,6 +877,35 @@ public class ControleActivity extends AppCompatActivity {
             }
         }
     }
+
+    private class SendConfirmLanding extends TimerTask {
+
+        @Override
+        public void run() {
+            try {
+                if (isFlightControllerAvailable()) {
+                    getAircraftInstance()
+                            .getFlightController().confirmLanding(
+                            new CommonCallbacks.CompletionCallback() {
+                                @Override
+                                public void onResult(DJIError djiError) {
+                                    if(djiError!=null) {
+                                        showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
+                                    } else {
+                                        showToast("confirmLanding enviado, drone deve pousar de fato.");
+                                    }
+                                }
+                            });
+                } else {
+                    showToast("Drone não está conectado!!!");
+                }
+                registraLogSDK(" confirmLanding", null);
+            } catch (Exception e) {
+                showToast("Exception: " + e.getMessage());
+            }
+        }
+    }
+
 
     private class GetBatteryLevel extends TimerTask {
 
@@ -1022,6 +1086,7 @@ public class ControleActivity extends AppCompatActivity {
         if(isFlightControllerAvailable()){
             if(getAircraftInstance().getFlightController().getRollPitchControlMode().value()== RollPitchControlMode.ANGLE.value()){
                 rollPitchControlMode = 1;
+                showToast("verticalThrottleMode: " + getAircraftInstance().getFlightController().getVerticalControlMode().value());
             } else {
                 rollPitchControlMode = 2;
             };
