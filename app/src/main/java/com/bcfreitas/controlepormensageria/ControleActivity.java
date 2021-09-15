@@ -74,9 +74,9 @@ public class ControleActivity extends AppCompatActivity {
     private float yaw;
     private float throttle;
 
-    public static final int DURACAO_PADRAO_EM_DECISEGUNDOS = 10;
+    public int DURACAO_PADRAO_EM_DECISEGUNDOS = 5;
     public static final int INTERVALO_DE_ENVIO_PADRAO = 10;
-    public int VALOR_PADRAO = 5;
+    public int VALOR_PADRAO = 1;
     public int rollPitchControlMode;
 
 
@@ -103,9 +103,9 @@ public class ControleActivity extends AppCompatActivity {
                 String comando = intent.getExtras().getString("comando");
 
 
-                Integer valorExplicito = VALOR_PADRAO; //valor padrao = 5
+                Integer valorExplicito = VALOR_PADRAO; //valor padrao = 1
                 String acao;
-                Integer duracaoEmDecisegundos = DURACAO_PADRAO_EM_DECISEGUNDOS; //tempo padrao = 1s
+                Integer duracaoEmDecisegundos = DURACAO_PADRAO_EM_DECISEGUNDOS; //tempo padrao = 0.5s
 
                 //quando vem [valorExplicito][acao][duracao]
                 if(comando.matches("[0-9]{1,2}[a-z]+[0-9]")) {
@@ -348,12 +348,13 @@ public class ControleActivity extends AppCompatActivity {
                 if(isFlightControllerAvailable()){
                     if(labelRollPitchControlMode.equals("ANGLE")){
                         getAircraftInstance().getFlightController().setRollPitchControlMode(RollPitchControlMode.ANGLE);
-                        VALOR_PADRAO = 5;
+                        VALOR_PADRAO = 3;
+                        DURACAO_PADRAO_EM_DECISEGUNDOS=5;
                     } else {
                         getAircraftInstance().getFlightController().setRollPitchControlMode(RollPitchControlMode.VELOCITY);
                         //Altera o valor padrão para 1 por segurança, pois o valor padrão de 5 quando usa velocidade se torna 5m/s,
-                        //e como o tempo padrão é 1s, equivale a um movimento de 5m... inviabilizando testes internos.
                         VALOR_PADRAO = 1;
+                        DURACAO_PADRAO_EM_DECISEGUNDOS = 3;
                     }
                     showToast("Modo de vôo configurado no drone!");
                 } else {
@@ -596,7 +597,8 @@ public class ControleActivity extends AppCompatActivity {
         //verifica altitude atual e o ângulo de inclinação da face do drone em relação ao norte
         //para passar como parâmetros e evitar movimentos de giro ou elevação indevidos no caso de outros movimentos.
         if(isFlightControllerAvailable()){
-            throttle = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude();
+            //throttle = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude();
+            throttle = 0;
             yaw = getAircraftInstance().getFlightController().getCompass().getHeading();
         } else {
             throttle = 0;
@@ -618,19 +620,18 @@ public class ControleActivity extends AppCompatActivity {
                 break;
             case R.id.botao_up:
             case R.id.botao_up2:
-                controleEsquerdo_pY = 1; //valorExplicito;
+                throttle = 1; //valorExplicito;
                 if(isFlightControllerAvailable()){
-                    float altitudeAtual = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude();
-                    controleEsquerdo_pY = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude()+1;
+                    throttle = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude()+1;
                 }
                 break;
             case R.id.botao_down:
             case R.id.botao_down2:
-                controleEsquerdo_pY = 0; //-1*valorExplicito;
+                throttle = 0; //-1*valorExplicito;
                 if(isFlightControllerAvailable()){
                     float altitudeAtual = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude();
                     if(altitudeAtual >=1) {
-                        controleEsquerdo_pY = getAircraftInstance().getFlightController().getState().getAircraftLocation().getAltitude()-1;
+                        throttle = altitudeAtual-1;
                     }
                 }
                 break;
@@ -647,7 +648,7 @@ public class ControleActivity extends AppCompatActivity {
                 return;
             case R.id.botao_girar:
                 //único giro implementado é para esquerda
-                yaw = yaw -1*valorExplicito;
+                yaw = yaw + 15;
                 break;
             case R.id.botao_land:
                 sendLanding = new SendLanding();
@@ -687,20 +688,6 @@ public class ControleActivity extends AppCompatActivity {
                 pitch = -(float) (controleDireito_pX);
                 roll = (float) (controleDireito_pY);
             }
-        }
-
-        //yaw (guinada/giro) representa o giro do drone, tem dois modos:
-        // modo velocidade angular, em que o valor passado é a quantidade de graus por segundo,
-        // modo ângulo, em que o valor passado é o ângulo para girar.
-        if(yaw==0){
-            yaw = controleEsquerdo_pX;
-        }
-
-        //throtle representa o movimento vertical (eixo Z), tem dois modos:
-        // modo posição: valor que representa a altitude em relação à posição de decolagem,
-        // modo velocidade: valores positivos representam ascenção, negativos descida.
-        if(throttle==0){
-            throttle = controleEsquerdo_pY;
         }
 
         //reforça modo de coordenada que deve ser usado para o comando.
