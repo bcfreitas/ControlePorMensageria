@@ -356,7 +356,6 @@ public class ControleActivity extends AppCompatActivity {
                         VALOR_PADRAO = 1;
                         DURACAO_PADRAO_EM_DECISEGUNDOS = 3;
                     }
-                    showToast("Modo de vôo configurado no drone!");
                 } else {
                     showToast("Drone não está conectado!");
                     ((Spinner) findViewById(R.id.rollPitchModeSelect)).setSelection(0, true);
@@ -375,7 +374,6 @@ public class ControleActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
                 if(isFlightControllerAvailable()){
                     configuraFlightCoordinateSystem();
-                    showToast("Modo de coordenada configurado no drone!");
                 } else {
                     showToast("Drone não está conectado!");
                     ((Spinner) findViewById(R.id.flightCoordinateSelect)).setSelection(0, true);
@@ -395,7 +393,6 @@ public class ControleActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
                 if(isFlightControllerAvailable()){
                     configuraYawControlMode();
-                    showToast("yawControlMode configurado no drone!");
                 } else {
                     showToast("Drone não está conectado!");
                     ((Spinner) findViewById(R.id.yawControlModeSelect)).setSelection(0, true);
@@ -413,7 +410,6 @@ public class ControleActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
                 if(isFlightControllerAvailable()){
                     configuraFlightOrientationMode();
-                    showToast("flightOrientationMode configurado no drone!");
                 } else {
                     showToast("Drone não está conectado!");
                     ((Spinner) findViewById(R.id.flightOrientationModeSelect)).setSelection(0, true);
@@ -478,7 +474,6 @@ public class ControleActivity extends AppCompatActivity {
             @Override
             public void onResult(DJIError djiError) {
                 if (djiError == null) {
-                    showToast(s);
                     ((Switch)findViewById(R.id.virtualStick)).setChecked(b);
                 } else {
                     showToast(djiError.getErrorCode() + " - " + djiError.getDescription());
@@ -755,8 +750,6 @@ public class ControleActivity extends AppCompatActivity {
                                 public void onResult(DJIError djiError) {
                                     if(djiError!=null) {
                                         showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
-                                    } else {
-                                        showToast("takeOff enviado para drone com Sucesso! O drone deve estar no ar neste momento.");
                                     }
                                 }
                             });
@@ -783,8 +776,6 @@ public class ControleActivity extends AppCompatActivity {
                                 public void onResult(DJIError djiError) {
                                     if(djiError!=null) {
                                         showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
-                                    } else {
-                                        showToast("turnOn enviado para drone com Sucesso! Olha aí que o bicho deve estar girando! :)");
                                     }
                                 }
                             });
@@ -811,8 +802,6 @@ public class ControleActivity extends AppCompatActivity {
                                 public void onResult(DJIError djiError) {
                                     if(djiError!=null) {
                                         showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
-                                    } else {
-                                        showToast("turnOff enviado para drone com Sucesso! As hélices devem estar paradas.");
                                     }
                                 }
                             });
@@ -840,8 +829,6 @@ public class ControleActivity extends AppCompatActivity {
                                     if(djiError!=null) {
                                         showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
                                     } else {
-                                        showToast("sendLand enviado para drone com Sucesso! Deve ter iniciado pouso.");
-
                                         SendConfirmLanding sendConfirmLanding = new SendConfirmLanding();
                                         sendVirtualStickDataTimer = new Timer();
                                         handler.postDelayed(new Runnable() {
@@ -878,8 +865,6 @@ public class ControleActivity extends AppCompatActivity {
                                 public void onResult(DJIError djiError) {
                                     if(djiError!=null) {
                                         showToast((djiError.getDescription()) + String.valueOf(djiError.getErrorCode()));
-                                    } else {
-                                        showToast("confirmLanding enviado, drone deve pousar de fato.");
                                     }
                                 }
                             });
@@ -1073,14 +1058,12 @@ public class ControleActivity extends AppCompatActivity {
         if(isFlightControllerAvailable()){
             if(getAircraftInstance().getFlightController().getRollPitchControlMode().value()== RollPitchControlMode.ANGLE.value()){
                 rollPitchControlMode = 1;
-                showToast("verticalThrottleMode: " + getAircraftInstance().getFlightController().getVerticalControlMode().value());
             } else {
                 rollPitchControlMode = 2;
             };
         } else {
             rollPitchControlMode = 0;
         }
-
         ((Spinner) findViewById(R.id.rollPitchModeSelect)).setSelection(rollPitchControlMode, true);
     }
 
@@ -1095,7 +1078,6 @@ public class ControleActivity extends AppCompatActivity {
         } else {
             yawControlMode = 0;
         }
-
         ((Spinner) findViewById(R.id.yawControlModeSelect)).setSelection(yawControlMode, true);
     }
 
