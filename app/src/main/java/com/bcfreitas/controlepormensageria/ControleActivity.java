@@ -27,6 +27,8 @@ import java.io.ByteArrayOutputStream;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -1253,6 +1255,7 @@ public class ControleActivity extends AppCompatActivity {
 
         final MediaManager mediaManager = getAircraftInstance().getCamera().getMediaManager();
         mediaManager.refreshFileListOfStorageLocation(SettingsDefinitions.StorageLocation.SDCARD, new CommonCallbacks.CompletionCallback() {
+
             @Override
             public void onResult(DJIError djiError) {
                 String str;
@@ -1260,6 +1263,17 @@ public class ControleActivity extends AppCompatActivity {
 
                 if (null == djiError) {
                     List<MediaFile> djiMedias = mediaManager.getSDCardFileListSnapshot();
+
+                    Collections.sort(djiMedias, new Comparator<MediaFile>(){
+                        @Override
+                        public int compare(MediaFile o1, MediaFile o2) {
+                            if(o1.getTimeCreated()>=o2.getTimeCreated()){
+                                return 1;
+                            } else {
+                                return -1;
+                            }
+                        };
+                    });
 
                     if (null != djiMedias) {
                         if (!djiMedias.isEmpty()) {
@@ -1307,5 +1321,4 @@ public class ControleActivity extends AppCompatActivity {
         enviarDadosPorMensageria("fiwareServerData", imageEncoded);
 
     }
-
 }
