@@ -8,14 +8,44 @@
     android:backgroundTint="@color/black"
     tools:context=".ControleActivity">
 
+    <Button
+        android:id="@+id/botao_girar_esquerda"
+        android:layout_width="60dp"
+        android:layout_height="55dp"
+        android:layout_marginTop="6dp"
+        android:backgroundTint="@color/purple_500"
+        android:padding="2dp"
+        android:text="girar\n(ge)"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="11dp"
+        app:layout_constraintEnd_toStartOf="@+id/botao_bateria"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
+
+    <Button
+        android:id="@+id/botao_girar_direita"
+        android:layout_width="60dp"
+        android:layout_height="55dp"
+        android:layout_marginTop="6dp"
+        android:backgroundTint="@color/purple_500"
+        android:padding="2dp"
+        android:text="girar\n(gd)"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="11dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/botao_land"
+        app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
+
     <Spinner
-        android:id="@+id/flightOrientationModeSelect"
+        android:id="@+id/verticalThrottleModeSelect"
         android:layout_width="180dp"
         android:layout_height="40dp"
         android:background="@android:drawable/btn_dropdown"
-        android:entries="@array/flightOrientationMode"
+        android:entries="@array/verticalThrottleMode"
         android:spinnerMode="dropdown"
-        app:layout_constraintTop_toBottomOf="@+id/label_flightOrientationMode"
+        app:layout_constraintTop_toBottomOf="@+id/label_verticalThrottleMode"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
@@ -28,10 +58,10 @@
         app:layout_constraintTop_toBottomOf="@+id/box_rabbitMQ" />
 
     <TextView
-        android:id="@+id/label_flightOrientationMode"
+        android:id="@+id/label_verticalThrottleMode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="FlightOrientationMode"
+        android:text="VerticalThrottleMode"
         android:textColor="@color/white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/boxSerial" />
@@ -51,7 +81,6 @@
         android:layout_width="40dp"
         android:layout_height="80dp"
         android:layout_marginTop="168dp"
-        android:layout_marginEnd="132dp"
         android:backgroundTint="@color/purple_500"
         android:padding="2dp"
         android:text="D\no\nw\nn"
@@ -59,7 +88,6 @@
         android:textColor="@color/white"
         android:textSize="11dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/botao_direita"
         app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
 
@@ -196,8 +224,7 @@
         android:textSize="11dp"
         app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK"
         app:layout_constraintEnd_toStartOf="@+id/botao_takeoff"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/botao_girar_esquerda" />
 
     <Button
         android:id="@+id/botao_takeoff"
@@ -210,25 +237,9 @@
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="11dp"
-        app:layout_constraintEnd_toStartOf="@+id/botao_girar"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/botao_bateria"
-        app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
-
-    <Button
-        android:id="@+id/botao_girar"
-        android:layout_width="60dp"
-        android:layout_height="55dp"
-        android:layout_marginTop="6dp"
-        android:padding="2dp"
-        android:backgroundTint="@color/purple_500"
-        android:text="girar\n(g)"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textSize="11dp"
         app:layout_constraintEnd_toStartOf="@+id/botao_land"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/botao_takeoff"
+        app:layout_constraintStart_toEndOf="@+id/botao_bateria"
         app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
 
     <Button
@@ -242,9 +253,8 @@
         android:textAllCaps="false"
         android:textColor="@color/white"
         android:textSize="11dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/botao_girar"
+        app:layout_constraintEnd_toStartOf="@id/botao_girar_direita"
+        app:layout_constraintStart_toEndOf="@+id/botao_takeoff"
         app:layout_constraintTop_toBottomOf="@+id/scrollLogSDK" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -421,6 +431,20 @@
         app:layout_constraintTop_toBottomOf="@+id/botao_tras" />
 
     <Button
+        android:id="@+id/botao_photo"
+        android:layout_width="60dp"
+        android:layout_height="55dp"
+        android:backgroundTint="@color/purple_500"
+        android:padding="1dp"
+        android:text="photo\n(ph)"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="11dp"
+        app:layout_constraintEnd_toStartOf="@+id/botao_off"
+        app:layout_constraintStart_toEndOf="@id/botao_on"
+        app:layout_constraintTop_toBottomOf="@+id/botao_tras" />
+
+    <Button
         android:id="@+id/botao_esquerda"
         android:layout_width="80dp"
         android:layout_height="wrap_content"
@@ -481,7 +505,7 @@
         android:id="@+id/group"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:constraint_referenced_ids="botao_land,botao_girar,botao_takeoff,botao_bateria"
+        app:constraint_referenced_ids="botao_land,botao_girar_esquerda,botao_takeoff,botao_bateria"
         app:flow_horizontalAlign="center" />
 
     <TextView
@@ -491,6 +515,6 @@
         android:text="FlightCoordinateMode"
         android:textColor="@color/white"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/flightOrientationModeSelect" />
+        app:layout_constraintTop_toBottomOf="@+id/verticalThrottleModeSelect" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

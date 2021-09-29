@@ -7,10 +7,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -21,23 +23,31 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import dji.common.battery.BatteryState;
+import dji.common.camera.SettingsDefinitions;
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.FlightOrientationMode;
 import dji.common.flightcontroller.virtualstick.FlightControlData;
 import dji.common.flightcontroller.virtualstick.FlightCoordinateSystem;
 import dji.common.flightcontroller.virtualstick.RollPitchControlMode;
+import dji.common.flightcontroller.virtualstick.VerticalControlMode;
 import dji.common.flightcontroller.virtualstick.YawControlMode;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseProduct;
+import dji.sdk.camera.Camera;
+import dji.sdk.media.MediaFile;
+import dji.sdk.media.MediaManager;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 
@@ -137,8 +147,10 @@ public class ControleActivity extends AppCompatActivity {
                     recebeComandoNavegacao(R.id.botao_takeoff, duracaoEmDecisegundos, valorExplicito);
                 } else if (acao.equals("l")) {
                     recebeComandoNavegacao(R.id.botao_land, duracaoEmDecisegundos, valorExplicito);
-                } else if (acao.equals("g")) {
-                    recebeComandoNavegacao(R.id.botao_girar, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("ge")) {
+                    recebeComandoNavegacao(R.id.botao_girar_esquerda, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("gd")) {
+                    recebeComandoNavegacao(R.id.botao_girar_direita, duracaoEmDecisegundos, valorExplicito);
                 } else if (acao.equals("on")) {
                     recebeComandoNavegacao(R.id.botao_on, duracaoEmDecisegundos, valorExplicito);
                 } else if (acao.equals("off")) {
@@ -149,6 +161,8 @@ public class ControleActivity extends AppCompatActivity {
                     recebeComandoNavegacao(R.id.botao_up, duracaoEmDecisegundos, valorExplicito);
                 } else if (acao.equals("down")) {
                     recebeComandoNavegacao(R.id.botao_down, duracaoEmDecisegundos, valorExplicito);
+                } else if (acao.equals("ph")) {
+                    recebeComandoNavegacao(R.id.botao_photo, duracaoEmDecisegundos, valorExplicito);
                 } else {
                     Toast.makeText(getApplicationContext(), comando, Toast.LENGTH_SHORT).show();
                     //Registra log do comando recebido na TextView da tela
@@ -194,7 +208,8 @@ public class ControleActivity extends AppCompatActivity {
         estados.add(R.id.botao_esquerda);
         estados.add(R.id.botao_direita);
         estados.add(R.id.botao_takeoff);
-        estados.add(R.id.botao_girar);
+        estados.add(R.id.botao_girar_esquerda);
+        estados.add(R.id.botao_girar_direita);
         estados.add(R.id.botao_land);
         estados.add(R.id.botao_on);
         estados.add(R.id.botao_off);
@@ -203,6 +218,7 @@ public class ControleActivity extends AppCompatActivity {
         estados.add(R.id.botao_up2);
         estados.add(R.id.botao_down);
         estados.add(R.id.botao_down2);
+        estados.add(R.id.botao_photo);
 
         mensageriaThread = MensageriaThread.getInstance();
         mensageriaThread.setBroadcaster(getApplicationContext());
@@ -256,10 +272,17 @@ public class ControleActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.botao_girar).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.botao_girar_esquerda).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recebeComandoNavegacao(R.id.botao_girar, 3, 1);
+                recebeComandoNavegacao(R.id.botao_girar_esquerda, 3, 1);
+            }
+        });
+
+        findViewById(R.id.botao_girar_direita).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_girar_direita, 3, 1);
             }
         });
 
@@ -319,6 +342,12 @@ public class ControleActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 recebeComandoNavegacao(R.id.botao_down2, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
+            }
+        });
+        findViewById(R.id.botao_photo).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                recebeComandoNavegacao(R.id.botao_photo, DURACAO_PADRAO_EM_DECISEGUNDOS, VALOR_PADRAO);
             }
         });
 
@@ -404,15 +433,15 @@ public class ControleActivity extends AppCompatActivity {
             }
         });
 
-        Spinner flightOrientationModeSpinner = ((Spinner) findViewById(R.id.flightOrientationModeSelect));
-        flightOrientationModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+        Spinner verticalThrottleModeSpinner = ((Spinner) findViewById(R.id.verticalThrottleModeSelect));
+        verticalThrottleModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id ) {
                 if(isFlightControllerAvailable()){
-                    configuraFlightOrientationMode();
+                    configuraVerticalThrottleMode();
                 } else {
                     showToast("Drone não está conectado!");
-                    ((Spinner) findViewById(R.id.flightOrientationModeSelect)).setSelection(0, true);
+                    ((Spinner) findViewById(R.id.verticalThrottleModeSelect)).setSelection(0, true);
 
                 }
 
@@ -452,19 +481,16 @@ public class ControleActivity extends AppCompatActivity {
         }
     }
 
-    public void configuraFlightOrientationMode(){
-        String flightOrientationModeValue;
-        flightOrientationModeValue = (String) ((Spinner) findViewById(R.id.flightOrientationModeSelect)).getSelectedItem();
+    public void configuraVerticalThrottleMode(){
+        String verticalThrottleMode;
+        verticalThrottleMode = (String) ((Spinner) findViewById(R.id.verticalThrottleModeSelect)).getSelectedItem();
         if(isFlightControllerAvailable()) {
-            if (flightOrientationModeValue.equals("AIRCRAFT_HEADING")) {
-                getAircraftInstance().getFlightController().getState().setOrientationMode(FlightOrientationMode.AIRCRAFT_HEADING);
-                Log.println(Log.INFO, "testesBruno", "setou orientation mode AIRCRAFT HEADING");
-            } else if (flightOrientationModeValue.equals("COURSE_LOCK")) {
-                getAircraftInstance().getFlightController().getState().setOrientationMode(FlightOrientationMode.COURSE_LOCK);
-                Log.println(Log.INFO, "testesBruno", "setou orientation mode COURSE LOCK");
-            } else {
-                getAircraftInstance().getFlightController().getState().setOrientationMode(FlightOrientationMode.HOME_LOCK);
-                Log.println(Log.INFO, "testesBruno", "setou orientation mode HOME LOCK");
+            if (verticalThrottleMode.equals("VELOCITY")) {
+                getAircraftInstance().getFlightController().setVerticalControlMode(VerticalControlMode.VELOCITY);
+                Log.println(Log.INFO, "testesBruno", "setou verticalControlMode Velocity");
+            } else if (verticalThrottleMode.equals("POSITION")) {
+                getAircraftInstance().getFlightController().setVerticalControlMode(VerticalControlMode.POSITION);
+                Log.println(Log.INFO, "testesBruno", "setou verticalControlMode POSITION");
             }
         }
     }
@@ -486,7 +512,6 @@ public class ControleActivity extends AppCompatActivity {
         findViewById(R.id.btnSendMessage).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getApplicationContext(), "Enviando mensagem para o servidor rabbitMQ.", Toast.LENGTH_SHORT).show();
                 Message msg2 = new Message();
                 Bundle bundleSample = new Bundle();
                 String dadosParaServidor = "drone:" + serialNumber + ";comando:" + ((TextView) findViewById(R.id.inputMsgRabbitMQ)).getText().toString().trim() + ";data:" + System.currentTimeMillis();
@@ -519,8 +544,11 @@ public class ControleActivity extends AppCompatActivity {
             case R.id.botao_takeoff:
                 textoDirecao = "levantar vôo";
                 break;
-            case R.id.botao_girar:
-                textoDirecao = valorExplicito + " girar por " + duracaoEmDecisegundos*100 + "ms";
+            case R.id.botao_girar_esquerda:
+                textoDirecao = valorExplicito + " girar  esquerda ";
+                break;
+            case R.id.botao_girar_direita:
+                textoDirecao = valorExplicito + " girar  direita ";
                 break;
             case R.id.botao_land:
                 textoDirecao = "pousar";
@@ -536,11 +564,14 @@ public class ControleActivity extends AppCompatActivity {
                 break;
             case R.id.botao_up:
             case R.id.botao_up2:
-                textoDirecao = valorExplicito + " para cima por " + duracaoEmDecisegundos*100 + "ms"; ;
+                textoDirecao = valorExplicito + " para cima por " + duracaoEmDecisegundos*100 + "ms";
                 break;
             case R.id.botao_down:
             case R.id.botao_down2:
-                textoDirecao = valorExplicito + " para baixo por " + duracaoEmDecisegundos*100 + "ms"; ;
+                textoDirecao = valorExplicito + " para baixo por " + duracaoEmDecisegundos*100 + "ms";
+                break;
+            case R.id.botao_photo:
+                textoDirecao = "tirar foto!";
                 break;
             default:
                 textoDirecao = "";
@@ -641,9 +672,13 @@ public class ControleActivity extends AppCompatActivity {
                 sendVirtualStickDataTimer = new Timer();
                 sendVirtualStickDataTimer.schedule(sendTakeOff, new Date());
                 return;
-            case R.id.botao_girar:
+            case R.id.botao_girar_esquerda:
                 //único giro implementado é para esquerda
                 yaw = yaw + 15;
+                break;
+            case R.id.botao_girar_direita:
+                //único giro implementado é para esquerda
+                yaw = yaw - 15;
                 break;
             case R.id.botao_land:
                 sendLanding = new SendLanding();
@@ -664,6 +699,9 @@ public class ControleActivity extends AppCompatActivity {
                 getBatteryLevel = new GetBatteryLevel();
                 sendVirtualStickDataTimer = new Timer();
                 sendVirtualStickDataTimer.schedule(getBatteryLevel, new Date());
+                return;
+            case R.id.botao_photo:
+                captureAction();
                 return;
             default:
                 controleEsquerdo_pX = 0;
@@ -699,6 +737,7 @@ public class ControleActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     sendVirtualStickDataTimer.cancel();
+                    toggleVirtualStick(false, "");
                     enviarPosicaoDroneParaFiware();
                 }
             }, duracaoEmDecisegundos*100);
@@ -1110,7 +1149,7 @@ public class ControleActivity extends AppCompatActivity {
             flightOrientationMode = 0;
         }
 
-        ((Spinner) findViewById(R.id.flightOrientationModeSelect)).setSelection(flightOrientationMode, true);
+        ((Spinner) findViewById(R.id.verticalThrottleModeSelect)).setSelection(flightOrientationMode, true);
     }
 
     /**
@@ -1164,4 +1203,109 @@ public class ControleActivity extends AppCompatActivity {
             showToast("handler da thread mensageria nulo");
         }
     }
+
+    private void captureAction(){
+
+        if(!isFlightControllerAvailable()){
+            showToast("Drone desconectado.");
+            return;
+        }
+
+        final Camera camera = getAircraftInstance().getCamera();
+
+        camera.setMode(SettingsDefinitions.CameraMode.SHOOT_PHOTO,
+                        new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+
+                            }
+                        });
+
+        camera.setShootPhotoMode(SettingsDefinitions.ShootPhotoMode.SINGLE, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError error) {
+                if (error != null) {
+                    showToast(error.getDescription());
+                }
+            }
+        });
+
+        camera.startShootPhoto(new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError error) {
+                if (error == null) {
+                    showToast("take photo: success");
+                } else {
+                    showToast(error.getDescription());
+                }
+
+                fetchMediaList();
+            }
+        });
+    }
+
+    private void fetchMediaList() {
+
+        if(!isFlightControllerAvailable() || getAircraftInstance().getCamera() == null  || getAircraftInstance().getCamera().getMediaManager() == null ){
+            showToast("Drone não conectado ou câmera não disponível (cartão SD inserido?).");
+            return;
+        }
+
+        final MediaManager mediaManager = getAircraftInstance().getCamera().getMediaManager();
+        mediaManager.refreshFileListOfStorageLocation(SettingsDefinitions.StorageLocation.SDCARD, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                String str;
+                MediaFile mediaFile;
+
+                if (null == djiError) {
+                    List<MediaFile> djiMedias = mediaManager.getSDCardFileListSnapshot();
+
+                    if (null != djiMedias) {
+                        if (!djiMedias.isEmpty()) {
+                            showToast ("Total Media files:" + djiMedias.size() + "\n" + ". Ultima foto: " +
+                                    djiMedias.get( djiMedias.size()-1 ).getFileName());
+
+                            mediaFile = djiMedias.get( djiMedias.size()-1 );
+
+                            try {
+                                TimeUnit.SECONDS.sleep(3);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+
+
+
+                            mediaFile.fetchThumbnail(new CommonCallbacks.CompletionCallback() {
+                                @Override
+                                public void onResult(DJIError djiError) {
+                                    converterFotoEEnviar(mediaFile.getThumbnail());
+                                }
+                            });
+
+                        } else {
+                            showToast("No Media in SD Card");
+                        }
+                    }
+                } else {
+                    showToast(djiError.getDescription());
+                }
+            }
+        });
+    }
+
+    public void converterFotoEEnviar(Bitmap foto){
+
+        ByteArrayOutputStream bao = new ByteArrayOutputStream();
+
+        foto.compress(Bitmap.CompressFormat.JPEG, 90, bao);
+
+        byte[] photoData = bao.toByteArray();
+
+        String imageEncoded = Base64.encodeToString(photoData,Base64.DEFAULT);
+
+        enviarDadosPorMensageria("fiwareServerData", imageEncoded);
+
+    }
+
 }

@@ -15,11 +15,10 @@
         <item>GROUND</item>
         <item>BODY</item>
     </string-array>
-    <string-array name="flightOrientationMode">
+    <string-array name="verticalThrottleMode">
         <item>--</item>
-        <item>AIRCRAFT_HEAD</item>
-        <item>COURSE_LOCK</item>
-        <item>HOME_LOCK</item>
+        <item>VELOCITY</item>
+        <item>POSITION</item>
     </string-array>
     <string-array name="yawControlMode">
         <item>--</item>
