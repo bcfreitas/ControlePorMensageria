@@ -45,6 +45,8 @@ import dji.common.flightcontroller.virtualstick.FlightCoordinateSystem;
 import dji.common.flightcontroller.virtualstick.RollPitchControlMode;
 import dji.common.flightcontroller.virtualstick.VerticalControlMode;
 import dji.common.flightcontroller.virtualstick.YawControlMode;
+import dji.common.gimbal.Rotation;
+import dji.common.gimbal.RotationMode;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.camera.Camera;
@@ -675,12 +677,12 @@ public class ControleActivity extends AppCompatActivity {
                 sendVirtualStickDataTimer.schedule(sendTakeOff, new Date());
                 return;
             case R.id.botao_girar_esquerda:
-                //único giro implementado é para esquerda
-                yaw = yaw + 15;
+                //giro fixo de 45 graus
+                yaw = yaw + 45;
                 break;
             case R.id.botao_girar_direita:
-                //único giro implementado é para esquerda
-                yaw = yaw - 15;
+                //giro fixo de 45 graus
+                yaw = yaw - 45;
                 break;
             case R.id.botao_land:
                 sendLanding = new SendLanding();
@@ -1058,6 +1060,7 @@ public class ControleActivity extends AppCompatActivity {
                     enviaSerialParaControleActivity(s);
                     enviarSerialParaMensageriaThread(s);
                     atualizarAcaoBotaoEnviar();
+                    posicionaCameraParaBaixo();
                 }
 
                 @Override
@@ -1261,40 +1264,38 @@ public class ControleActivity extends AppCompatActivity {
                 String str;
                 MediaFile mediaFile;
 
+                List<MediaFile> djiMedias = mediaManager.getSDCardFileListSnapshot();
                 if (null == djiError) {
-                    List<MediaFile> djiMedias = mediaManager.getSDCardFileListSnapshot();
+                    mediaManager.refreshFileList(new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                        }
+                    });
 
-                    Collections.sort(djiMedias, new Comparator<MediaFile>(){
+
+                   Collections.sort(djiMedias, new Comparator<MediaFile>(){
                         @Override
                         public int compare(MediaFile o1, MediaFile o2) {
-                            if(o1.getTimeCreated()>=o2.getTimeCreated()){
-                                return 1;
-                            } else {
-                                return -1;
-                            }
+                            return o1.getFileName().compareTo(o2.getFileName());
                         };
                     });
 
                     if (null != djiMedias) {
                         if (!djiMedias.isEmpty()) {
+                            mediaFile = djiMedias.get(djiMedias.size()-1);
+
                             showToast ("Total Media files:" + djiMedias.size() + "\n" + ". Ultima foto: " +
-                                    djiMedias.get( djiMedias.size()-1 ).getFileName());
+                                    mediaFile.getFileName());
 
-                            mediaFile = djiMedias.get( djiMedias.size()-1 );
-
-                            try {
-                                TimeUnit.SECONDS.sleep(3);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-
-
+                            String nomeArquivo = mediaFile.getFileName();
 
                             mediaFile.fetchThumbnail(new CommonCallbacks.CompletionCallback() {
                                 @Override
                                 public void onResult(DJIError djiError) {
-                                    converterFotoEEnviar(mediaFile.getThumbnail());
+                                    converterFotoEEnviar(mediaFile.getThumbnail(), nomeArquivo);
                                 }
+
+
                             });
 
                         } else {
@@ -1308,7 +1309,7 @@ public class ControleActivity extends AppCompatActivity {
         });
     }
 
-    public void converterFotoEEnviar(Bitmap foto){
+    public void converterFotoEEnviar(Bitmap foto, String nomeArquivo){
 
         ByteArrayOutputStream bao = new ByteArrayOutputStream();
 
@@ -1318,7 +1319,29 @@ public class ControleActivity extends AppCompatActivity {
 
         String imageEncoded = Base64.encodeToString(photoData,Base64.DEFAULT);
 
-        enviarDadosPorMensageria("fiwareServerData", imageEncoded);
+        String dadosImagem = "nomeArquivo: " + nomeArquivo + "; imagem_base64: " + imageEncoded;
 
+        enviarDadosPorMensageria("fiwareServerData", dadosImagem);
+
+    }
+
+    public void posicionaCameraParaBaixo(){
+        if(!isFlightControllerAvailable()){
+            showToast("Drone desconectado. Impossível virar câmera para baixo.");
+            return;
+        }
+        getAircraftInstance().getGimbal().
+                rotate(new Rotation.Builder().pitch(-90)
+                        .mode(RotationMode.ABSOLUTE_ANGLE)
+                        .yaw(Rotation.NO_ROTATION)
+                        .roll(Rotation.NO_ROTATION)
+                        .time(2)
+                        .build(), new CommonCallbacks.CompletionCallback() {
+
+                    @Override
+                    public void onResult(DJIError error) {
+
+                    }
+                });
     }
 }
