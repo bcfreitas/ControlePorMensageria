@@ -288,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
         }
         Intent intent = new Intent(MainActivity.this, ControleActivity.class);
         intent.putExtra("canalParaMensageria", canalParaMensageria);
-        intent.putExtra("urlRabbitMQ", ((EditText) findViewById(R.id.url_rabbitmq)).getText().toString());
+        intent.putExtra("urlRabbitmq", ((EditText) findViewById(R.id.url_rabbitmq)).getText().toString());
         startActivity(intent);
     }
 

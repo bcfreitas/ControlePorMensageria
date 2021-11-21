@@ -82,6 +82,7 @@ public class ControleActivity extends AppCompatActivity {
     public static String ACTION_SERIAL_DRONE = "com.bcfreitas.controlepormensageria.ACTION_SERIAL_DRONE";
     public static String ACTION_MENSAGERIA = "com.bcfreitas.controlepormensageria.ACTION_MENSAGERIA";
     public String filaParaMensageria;
+    public String urlRabbitmq;
 
     private float pitch;
     private float roll;
@@ -204,6 +205,7 @@ public class ControleActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         filaParaMensageria = (String) intent.getExtras().get("canalParaMensageria");
+        urlRabbitmq = (String) intent.getExtras().get("urlRabbitmq");
 
         setContentView(R.layout.activity_controle);
         estados.add(R.id.botao_frente);
@@ -227,6 +229,7 @@ public class ControleActivity extends AppCompatActivity {
         mensageriaThread = MensageriaThread.getInstance();
         mensageriaThread.setBroadcaster(getApplicationContext());
         mensageriaThread.setFilaParaMensageria(filaParaMensageria);
+        mensageriaThread.setUrlRabbitmq(urlRabbitmq);
         mensageriaThread.start();
 
         handler.postDelayed(new Runnable() {

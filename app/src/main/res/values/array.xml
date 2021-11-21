@@ -5,6 +5,9 @@
         <item>canal_c</item>
         <item>controlePorMensageria</item>
     </string-array>
+    <string-array name="spinnerItemsEnvio">
+        <item>fiwareQueue</item>
+    </string-array>
     <string-array name="rollpitchmodes">
         <item>--</item>
         <item>ANGLE</item>

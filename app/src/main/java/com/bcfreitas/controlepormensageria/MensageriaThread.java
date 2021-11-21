@@ -52,6 +52,7 @@ class MensageriaThread extends Thread {
     Connection connection;
     Connection connectionEnvio;
     Connection connectionEnvioFiware;
+    private String urlRabbitmq;
 
     private MensageriaThread(){
         this.intent = new Intent(ControleActivity.ACTION_MENSAGERIA);
@@ -71,7 +72,7 @@ class MensageriaThread extends Thread {
         if(this.factory==null){
             this.factory = new ConnectionFactory();
             try {
-                factory.setUri("amqps://hmlfakebg:2e7fakefakefake9E7ov-h2biEOD@hornet.rmq.cloudamqp.com/hmlhesbg");
+                factory.setUri(urlRabbitmq);
                 if(this.connection == null){
                     this.connection=factory.newConnection();
                     this.connectionEnvio=factory.newConnection();
@@ -84,16 +85,8 @@ class MensageriaThread extends Thread {
                 channelEnvio.queueDeclare(filaParaMensageria, true, false, false, null);
                 channelEnvioFiware.queueDeclare(FIWARE_QUEUE, true, false, false, null);
                 Log.println(Log.INFO, "testesBruno", "Conexão e canal AMQP criado com sucesso! Na fila " + filaParaMensageria);
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (KeyManagementException e) {
-                e.printStackTrace();
-            } catch (TimeoutException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (URISyntaxException | NoSuchAlgorithmException | KeyManagementException | TimeoutException | IOException e) {
+                enviaDadosParaThreadPrincipal("Erro na conexão com o RabbitMQ! Verifique URL.");
             }
 
             //O Handler associado a thread é responsável
@@ -230,6 +223,10 @@ class MensageriaThread extends Thread {
 
     public void setFilaParaMensageria(String filaParaMensageria) {
         this.filaParaMensageria = filaParaMensageria;
+    }
+
+    public void setUrlRabbitmq(String urlRabbitmq) {
+        this.urlRabbitmq=urlRabbitmq;
     }
 }
 
