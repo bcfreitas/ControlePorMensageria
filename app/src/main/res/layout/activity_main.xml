@@ -53,4 +53,26 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <EditText
+        android:id="@+id/url_rabbitmq"
+        android:layout_width="360dp"
+        android:layout_height="38dp"
+        android:layout_marginBottom="30dp"
+        android:ems="10"
+        android:inputType="text"
+        android:text="amqps://user:pass@instance.rmq.cloudamqp.com/user"
+        android:textSize="14dp"
+        app:layout_constraintBottom_toTopOf="@+id/labelCanalMensageria"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="URL do servidor rabbitMQ:"
+        app:layout_constraintBottom_toTopOf="@+id/url_rabbitmq"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -71,7 +71,7 @@ class MensageriaThread extends Thread {
         if(this.factory==null){
             this.factory = new ConnectionFactory();
             try {
-                factory.setUri("amqps://hmlhesbg:2e7CDYAULIV1Z3E7AQC9E7ov-h2biEOD@hornet.rmq.cloudamqp.com/hmlhesbg");
+                factory.setUri("amqps://hmlfakebg:2e7fakefakefake9E7ov-h2biEOD@hornet.rmq.cloudamqp.com/hmlhesbg");
                 if(this.connection == null){
                     this.connection=factory.newConnection();
                     this.connectionEnvio=factory.newConnection();

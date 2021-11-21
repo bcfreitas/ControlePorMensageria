@@ -1,7 +1,9 @@
 package com.bcfreitas.controlepormensageria;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -11,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,6 +43,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getName();
     public static final String FLAG_CONNECTION_CHANGE = "dji_sdk_connection_change";
     public static final String ACTION_CONEXAO_DRONE = "com.bcfreitas.controlepormensageria.ACTION_CONEXAO_DRONE";
+    private String URL_RABBITMQ_EXAMPLE = "amqps://user:pass@instance.rmq.cloudamqp.com/user";
+    private static final String SHARED_PREFERENCES_FILE_KEY = "com.bcfreitas.controlepormensageria.PREFERENCE_FILE_KEY";
     private static BaseProduct mProduct;
     private Handler mHandler;
 
@@ -76,7 +81,32 @@ public class MainActivity extends AppCompatActivity {
 
         //Initialize DJI SDK Manager
         mHandler = new Handler(Looper.getMainLooper());
+
+        //verifica se há URL armazenada localmente, para atualizar o text view
+        if(this.carregarURL(getApplicationContext()) != URL_RABBITMQ_EXAMPLE) {
+            ((EditText) findViewById(R.id.url_rabbitmq)).setText(carregarURL(getApplicationContext()));
+        }
     }
+
+    public void salvarURL(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_FILE_KEY, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("URL_RABBITMQ", ((EditText) findViewById(R.id.url_rabbitmq)).getText().toString());
+        editor.apply();
+    }
+
+    public String carregarURL(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_FILE_KEY, MODE_PRIVATE);
+        String text = sharedPreferences.getString("URL_RABBITMQ", URL_RABBITMQ_EXAMPLE);
+        return text;
+    }
+
+    public String verificaURLpersistida(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_FILE_KEY, MODE_PRIVATE);
+        String text = sharedPreferences.getString("URL_RABBITMQ", URL_RABBITMQ_EXAMPLE);
+        return text;
+    }
+
 
     /**
      * Checks if there is any missing permissions, and
@@ -252,8 +282,13 @@ public class MainActivity extends AppCompatActivity {
         Spinner spinner = (Spinner) findViewById(R.id.selectChannel);
         canalParaMensageria = spinner.getSelectedItem().toString();
 
+        //se o valor do campo URL rabbitMQ for diferente do que estava armazenado ou do valor default, persite.
+        if(((EditText) findViewById(R.id.url_rabbitmq)).getText().toString() != carregarURL(getApplicationContext())){
+            this.salvarURL(getApplicationContext());
+        }
         Intent intent = new Intent(MainActivity.this, ControleActivity.class);
         intent.putExtra("canalParaMensageria", canalParaMensageria);
+        intent.putExtra("urlRabbitMQ", ((EditText) findViewById(R.id.url_rabbitmq)).getText().toString());
         startActivity(intent);
     }
 
