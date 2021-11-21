@@ -93,6 +93,10 @@ class MensageriaThread extends Thread {
             //por receber mensagens de outras Threads para esta Thread
             mHandler = new Handler(Looper.myLooper()) {
                 public void handleMessage(Message msg) {
+                    if(connection == null || connectionEnvio == null || connectionEnvioFiware == null ) {
+                        enviaDadosParaThreadPrincipal("Erro na conexão com o RabbitMQ! Verifique URL.");
+                        return;
+                    }
                     //A thread principal envia o comando de teste
                     //envelopado em um bundle de dados numa Message com a key msgParaRabbitMQ
                     if(msg.getData().getString("msgParaRabbitMQ")!=null) {
@@ -115,6 +119,12 @@ class MensageriaThread extends Thread {
             };
 
             try {
+
+                if(connection == null || connectionEnvio == null || connectionEnvioFiware == null ) {
+                    enviaDadosParaThreadPrincipal("Erro na conexão com o RabbitMQ! Verifique URL.");
+                    return;
+                }
+
                 //abertura do canal contínuo de comunicação para recepção de dados
                 //do servidor rabbitMQ pelo protocolo AMQP
                 channel.basicConsume(filaParaMensageria, false, "",
@@ -163,6 +173,7 @@ class MensageriaThread extends Thread {
             } catch (IOException e) {
                 Log.println(Log.ERROR, "testesBruno", e.getLocalizedMessage() + e.getCause());
                 e.printStackTrace();
+                enviaDadosParaThreadPrincipal("Erro na conexão com o RabbitMQ! Verifique URL.");
             }
 
             //executa a fila de mensagens desta thread de forma contínua (permanece ativa,
